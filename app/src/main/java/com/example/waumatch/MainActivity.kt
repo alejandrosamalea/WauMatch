@@ -21,7 +21,7 @@ class MainActivity : ComponentActivity() {
             WauMatchTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     Greeting(
-                        name = "Javier",
+                        name = "Javieasdr",
                         modifier = Modifier.padding(innerPadding)
                     )
                 }
