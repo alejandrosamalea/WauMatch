@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "628045113293",
+    "project_id": "waumatch",
+    "storage_bucket": "waumatch.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:628045113293:android:21c6583ff8887dce7b8684",
+        "android_client_info": {
+          "package_name": "com.example.waumatch"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyByb_E50JXgm8Y79f1kUXXFjq6mY9lgqjQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

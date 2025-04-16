@@ -5,10 +5,14 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.example.waumatch.auth.LoginScreen
+import com.example.waumatch.auth.RegisterScreen
 import com.example.waumatch.ui.navigation.MainNavigationBar
 import com.example.waumatch.ui.navigation.NavigationItem
 import com.example.waumatch.ui.screens.*
@@ -21,15 +25,19 @@ class MainActivity : ComponentActivity() {
         setContent {
             WauMatchTheme {
                 val navController = rememberNavController()
+                val navBackStackEntry by navController.currentBackStackEntryAsState()
+                val selectedDestination = navBackStackEntry?.destination?.route ?: NavigationItem.Home
 
                 Scaffold(
                     bottomBar = {
-                        MainNavigationBar(navController)
+                        if (selectedDestination != NavigationItem.Login.route && selectedDestination != NavigationItem.Registrar.route) {
+                            MainNavigationBar(navController)
+                        }
                     }
                 ) { innerPadding ->
                     NavHost(
                         navController = navController,
-                        startDestination = NavigationItem.Home.route,
+                        startDestination = NavigationItem.Login.route,
                         modifier = Modifier.padding(innerPadding)
                     ) {
                         composable(NavigationItem.Home.route) { HomeScreen() }
@@ -37,6 +45,9 @@ class MainActivity : ComponentActivity() {
                         composable(NavigationItem.Add.route) { AddScreen() }
                         composable(NavigationItem.Favorites.route) { FavoritesScreen() }
                         composable(NavigationItem.Profile.route) { ProfileScreen() }
+                        composable(NavigationItem.Login.route) { LoginScreen(navController) }
+                        composable(NavigationItem.Registrar.route) { RegisterScreen(navController) }
+
                     }
                 }
             }

@@ -13,4 +13,7 @@ sealed class NavigationItem(
     object Add : NavigationItem("add", R.drawable.add, "Añadir")
     object Favorites : NavigationItem("favorites", R.drawable.favorite, "Favoritos")
     object Profile : NavigationItem("profile", R.drawable.profile, "Perfil")
+    object Login : NavigationItem("login", R.drawable.profile, "Login")
+    object Registrar : NavigationItem("registrar", R.drawable.profile, "Registrar")
+
 }
