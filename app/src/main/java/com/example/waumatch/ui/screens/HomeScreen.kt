@@ -1,16 +1,29 @@
 package com.example.waumatch.ui.screens
 
+import android.app.Application
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.waumatch.ui.components.AnuncioCard
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.waumatch.ui.components.WauMatchHeader
+import com.example.waumatch.viewmodel.AnuncioViewModel
+import com.example.waumatch.viewmodel.AnuncioViewModelFactory
+
 
 @Composable
 fun HomeScreen() {
+    val context = LocalContext.current
+    val application = context.applicationContext as Application
+    val viewModel: AnuncioViewModel = viewModel(factory = AnuncioViewModelFactory(application))
+
+    val anuncios by viewModel.anuncios.collectAsState()
+
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
@@ -20,24 +33,14 @@ fun HomeScreen() {
                 .fillMaxSize()
                 .padding(16.dp)
         ) {
-            Text(
-                text = "WauMatch",
-                style = MaterialTheme.typography.headlineMedium.copy(
-                    color = MaterialTheme.colorScheme.primary,
-                    fontSize = 26.sp
-                )
-            )
-
+            WauMatchHeader()
             Spacer(modifier = Modifier.height(16.dp))
 
-            LazyColumn(
-                modifier = Modifier.fillMaxSize()
-            ) {
-                items(5) { index ->
+            LazyColumn(modifier = Modifier.fillMaxSize()) {
+                items(anuncios) { anuncio ->
                     AnuncioCard(
-                        titulo = "Anuncio #$index",
-                        descripcion = "Este es el contenido del anuncio número $index. Puedes personalizar esta info."
-                    )
+                        anuncio = anuncio,
+                        onToggleFavorito = { viewModel.toggleFavorito(it) })
                 }
             }
         }

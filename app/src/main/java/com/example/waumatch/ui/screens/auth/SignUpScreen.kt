@@ -1,5 +1,6 @@
 package com.example.waumatch.auth
 
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -304,10 +305,24 @@ fun RegisterScreen(navController: NavController) {
     }
 }
 
-fun crearUsuarioBD(bd: FirebaseFirestore,email: String, password: String, confirmPassword: String, nombre: String, auth: FirebaseAuth){
-    val user = FirebaseAuth.getInstance().currentUser;
-    //futuro
+fun crearUsuarioBD(bd: FirebaseFirestore, email: String, password: String, confirmPassword: String, nombre: String, auth: FirebaseAuth) {
+    val user = FirebaseAuth.getInstance().currentUser
+    user?.let {
+        val usuarioData = hashMapOf(
+            "nombre" to nombre,
+            "email" to email,
+            "password" to password // Asegúrate de manejar las contraseñas con seguridad, no guardes la contraseña en texto plano
+        )
+        bd.collection("usuarios").document(user.uid).set(usuarioData)
+            .addOnSuccessListener {
+                Log.d("Firestore", "Usuario creado correctamente en Firestore")
+            }
+            .addOnFailureListener { e ->
+                Log.e("Firestore", "Error al guardar el usuario: ${e.message}")
+            }
+    }
 }
+
 
 fun validate(email: String, password: String, confirmPassword: String, nombre: String, auth: FirebaseAuth, setErrorMessage: (String) -> Unit): Boolean {
     val regex = "^[A-Za-z0-9._%+-]+@(gmail\\.com|hotmail\\.com|yahoo\\.com)$"
