@@ -32,6 +32,7 @@ import coil.compose.rememberAsyncImagePainter
 import com.example.waumatch.R
 import com.example.waumatch.ui.navigation.NavigationItem
 import com.example.waumatch.ui.theme.WauMatchTheme
+import com.google.android.play.core.integrity.r
 import com.google.firebase.auth.FirebaseAuth
 
 @Composable
@@ -66,7 +67,7 @@ fun LoginScreen(navController: NavController) {
                 // Logo
                 Image(
                     painter = rememberAsyncImagePainter(
-                        "https://api.a0.dev/assets/image?text=cute%20modern%20minimal%20dog%20care%20logo&aspect=1:1"
+                        R.drawable.perro
                     ),
                     contentDescription = "Logo de WauMatch",
                     modifier = Modifier
