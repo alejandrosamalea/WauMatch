@@ -1,7 +1,7 @@
 package com.example.waumatch.ui.screens
 
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -16,7 +16,9 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -29,54 +31,28 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberAsyncImagePainter
 import com.example.waumatch.ui.theme.AquaLight
 import com.example.waumatch.ui.theme.OceanBlue
 import com.example.waumatch.ui.theme.SkyBlue
-
-data class ProfileData(
-    val name: String,
-    val subtitle: String,
-    val about: String,
-    val availability: Availability,
-    val profileImage: String
-)
-
-data class Availability(
-    val weekdays: String,
-    val weekends: String
-)
+import com.example.waumatch.viewmodel.ProfileManager
 
 @Composable
-fun ProfileScreen() {
+fun ProfileScreen(viewModel: ProfileManager = viewModel(factory = ProfileManagerFactory(LocalContext.current))) {
     val context = LocalContext.current
-    var isEditing by remember { mutableStateOf(false) }
-    var profileData by remember {
-        mutableStateOf(
-            ProfileData(
-                name = "María García",
-                subtitle = "Cuidadora Certificada 🐾",
-                about = "¡Hola! Soy una apasionada cuidadora de perros con más de 3 años de experiencia. " +
-                        "Me encanta pasar tiempo con nuestros amigos peludos y asegurarme de que reciban " +
-                        "todo el amor y atención que merecen. Vivo en una casa espaciosa con jardín y tengo " +
-                        "experiencia en el cuidado de perros de todos los tamaños y personalidades.",
-                availability = Availability(
-                    weekdays = "9:00 - 18:00",
-                    weekends = "10:00 - 15:00"
-                ),
-                profileImage = "https://api.a0.dev/assets/image?text=friendly%20person%20with%20dog%20profile%20picture&aspect=1:1"
-            )
-        )
-    }
     val isOwnProfile = true
+
+    val profileData by viewModel.getProfileData().observeAsState(ProfileManager.ProfileData())
+    val isDataLoaded by viewModel.getIsDataLoaded().observeAsState(false)
+    val isEditing by viewModel.getIsEditing().observeAsState(false)
 
     val pickImageLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
     ) { uri ->
-        uri?.let {
-            profileData = profileData.copy(profileImage = it.toString())
-            Toast.makeText(context, "Foto actualizada", Toast.LENGTH_SHORT).show()
-        }
+        uri?.let { viewModel.updateProfileImage(it.toString()) }
     }
 
     LazyColumn(
@@ -84,10 +60,7 @@ fun ProfileScreen() {
             .fillMaxSize()
             .background(
                 brush = Brush.verticalGradient(
-                    colors = listOf(
-                        OceanBlue,
-                        SkyBlue
-                    )
+                    colors = listOf(OceanBlue, SkyBlue)
                 )
             )
     ) {
@@ -100,14 +73,7 @@ fun ProfileScreen() {
             ) {
                 if (isOwnProfile) {
                     IconButton(
-                        onClick = {
-                            isEditing = !isEditing
-                            Toast.makeText(
-                                context,
-                                if (isEditing) "Cambios guardados" else "Modo edición activado",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        },
+                        onClick = { viewModel.toggleEditing() },
                         modifier = Modifier
                             .align(Alignment.TopEnd)
                             .padding(top = 10.dp, end = 20.dp)
@@ -139,6 +105,7 @@ fun ProfileScreen() {
                                     if (isEditing) this.alpha(0.8f) else this
                                 }
                                 .clickable(enabled = isEditing) {
+                                    pickImageLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
                                 },
                             contentScale = ContentScale.Crop
                         )
@@ -157,7 +124,16 @@ fun ProfileScreen() {
                     if (isEditing) {
                         TextField(
                             value = profileData.name,
-                            onValueChange = { profileData = profileData.copy(name = it) },
+                            onValueChange = { newName ->
+                                val updatedData = ProfileManager.ProfileData().apply {
+                                    setName(newName)
+                                    setSubtitle(profileData.subtitle)
+                                    setAbout(profileData.about)
+                                    setAvailability(profileData.availability)
+                                    setProfileImage(profileData.profileImage)
+                                }
+                                viewModel.getProfileData().setValue(updatedData) // Usar getProfileData().setValue
+                            },
                             modifier = Modifier
                                 .width(200.dp)
                                 .border(1.dp, ComposeColor(0xFF2EDFF2), RoundedCornerShape(8.dp)),
@@ -176,7 +152,7 @@ fun ProfileScreen() {
                         )
                     } else {
                         Text(
-                            text = profileData.name,
+                            text = if (isDataLoaded) profileData.name else "Cargando...",
                             fontSize = 24.sp,
                             fontWeight = FontWeight.Bold,
                             color = ComposeColor.White
@@ -186,7 +162,16 @@ fun ProfileScreen() {
                     if (isEditing) {
                         TextField(
                             value = profileData.subtitle,
-                            onValueChange = { profileData = profileData.copy(subtitle = it) },
+                            onValueChange = { newSubtitle ->
+                                val updatedData = ProfileManager.ProfileData().apply {
+                                    setName(profileData.name)
+                                    setSubtitle(newSubtitle)
+                                    setAbout(profileData.about)
+                                    setAvailability(profileData.availability)
+                                    setProfileImage(profileData.profileImage)
+                                }
+                                viewModel.getProfileData().setValue(updatedData)
+                            },
                             modifier = Modifier
                                 .width(200.dp)
                                 .border(1.dp, ComposeColor(0xFF2EDFF2), RoundedCornerShape(8.dp)),
@@ -223,7 +208,6 @@ fun ProfileScreen() {
                 }
             }
         }
-
         item {
             Column(
                 modifier = Modifier
@@ -246,7 +230,16 @@ fun ProfileScreen() {
                     if (isEditing) {
                         TextField(
                             value = profileData.about,
-                            onValueChange = { profileData = profileData.copy(about = it) },
+                            onValueChange = { newAbout ->
+                                val updatedData = ProfileManager.ProfileData().apply {
+                                    setName(profileData.name)
+                                    setSubtitle(profileData.subtitle)
+                                    setAbout(newAbout)
+                                    setAvailability(profileData.availability)
+                                    setProfileImage(profileData.profileImage)
+                                }
+                                viewModel.getProfileData().setValue(updatedData)
+                            },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(120.dp)
@@ -284,7 +277,6 @@ fun ProfileScreen() {
                 }
             }
         }
-
         item {
             Column(
                 modifier = Modifier
@@ -308,18 +300,37 @@ fun ProfileScreen() {
                         day = "Lun - Vie",
                         time = profileData.availability.weekdays,
                         isEditing = isEditing,
-                        onTimeChange = { profileData = profileData.copy(availability = profileData.availability.copy(weekdays = it)) }
+                        onTimeChange = { newTime ->
+                            val updatedAvailability = ProfileManager.Availability(newTime, profileData.availability.weekends)
+                            val updatedData = ProfileManager.ProfileData().apply {
+                                setName(profileData.name)
+                                setSubtitle(profileData.subtitle)
+                                setAbout(profileData.about)
+                                setAvailability(updatedAvailability)
+                                setProfileImage(profileData.profileImage)
+                            }
+                            viewModel.getProfileData().setValue(updatedData)
+                        }
                     )
                     AvailabilityItem(
                         day = "Sáb - Dom",
-                        time = profileData.availability.weekends,
+                        time = profileData.availability.weekdays,
                         isEditing = isEditing,
-                        onTimeChange = { profileData = profileData.copy(availability = profileData.availability.copy(weekends = it)) }
+                        onTimeChange = { newTime ->
+                            val updatedAvailability = ProfileManager.Availability(profileData.availability.weekdays, newTime)
+                            val updatedData = ProfileManager.ProfileData().apply {
+                                setName(profileData.name)
+                                setSubtitle(profileData.subtitle)
+                                setAbout(profileData.about)
+                                setAvailability(updatedAvailability)
+                                setProfileImage(profileData.profileImage)
+                            }
+                            viewModel.getProfileData().setValue(updatedData)
+                        }
                     )
                 }
             }
         }
-
         item {
             Column(
                 modifier = Modifier
@@ -348,11 +359,10 @@ fun ProfileScreen() {
                 }
             }
         }
-
         if (!isOwnProfile) {
             item {
                 Button(
-                    onClick = { /**/ },
+                    onClick = { /* Acción de contacto */ },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 20.dp, vertical = 30.dp),
@@ -373,6 +383,18 @@ fun ProfileScreen() {
     }
 }
 
+// Factory para crear ProfileManager
+class ProfileManagerFactory(private val context: android.content.Context) : ViewModelProvider.Factory {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(ProfileManager::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return ProfileManager(context) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
+    }
+}
+
+// Componentes auxiliares (StatItem, Tag, AvailabilityItem, Review)
 @Composable
 fun StatItem(number: String, label: String) {
     Column(

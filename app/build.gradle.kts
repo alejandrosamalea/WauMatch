@@ -63,6 +63,8 @@ dependencies {
     implementation(libs.androidx.animation.core.lint)
     implementation(libs.firebase.firestore.ktx)
     implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.runtime.livedata)
+    implementation(libs.firebase.database.ktx)
     kapt("androidx.room:room-compiler:2.7.0")
     implementation(libs.androidx.room.ktx)
     testImplementation(libs.junit)
@@ -74,4 +76,5 @@ dependencies {
     debugImplementation(libs.androidx.ui.test.manifest)
     implementation(libs.glide)
     implementation(libs.coil.compose)
+    implementation(libs.firebase.storage)
 }

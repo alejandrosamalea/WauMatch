@@ -1,5 +1,6 @@
 package com.example.waumatch.auth
 
+import android.annotation.SuppressLint
 import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -30,18 +31,22 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import androidx.test.services.events.TimeStamp
 import coil.compose.rememberAsyncImagePainter
 import com.example.waumatch.R
 import com.example.waumatch.ui.navigation.NavigationItem
 import com.example.waumatch.ui.theme.WauMatchTheme
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.type.DateTime
 
 @Composable
 fun RegisterScreen(navController: NavController) {
     var email by remember { mutableStateOf("") }
     var nombre by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var direccion by remember { mutableStateOf("") }
+    var telefono by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
     var showPassword by remember { mutableStateOf(false) }
     var showConfirmPassword by remember { mutableStateOf(false) }
@@ -74,7 +79,7 @@ fun RegisterScreen(navController: NavController) {
                 // Logo
                 Image(
                     painter = rememberAsyncImagePainter(
-                        "https://api.a0.dev/assets/image?text=cute%20modern%20minimal%20dog%20care%20logo&aspect=1:1"
+                        R.drawable.perro
                     ),
                     contentDescription = "Logo de WauMatch",
                     modifier = Modifier
@@ -256,7 +261,7 @@ fun RegisterScreen(navController: NavController) {
                             auth.createUserWithEmailAndPassword(email, password)
                                 .addOnCompleteListener { task ->
                                     if (task.isSuccessful) {
-                                        crearUsuarioBD(db, email, password, confirmPassword, nombre, auth)
+                                        crearUsuarioBD(db, email, password, nombre, direccion, auth, telefono)
                                         navController.navigate("home")
                                     } else {
                                         errorMessage = task.exception?.message ?: "Ha ocurrido un error al intentar crear la cuenta"
@@ -305,13 +310,18 @@ fun RegisterScreen(navController: NavController) {
     }
 }
 
-fun crearUsuarioBD(bd: FirebaseFirestore, email: String, password: String, confirmPassword: String, nombre: String, auth: FirebaseAuth) {
+@SuppressLint("RestrictedApi")
+fun crearUsuarioBD(bd: FirebaseFirestore, email: String, password: String, nombre: String, direccion: String, auth: FirebaseAuth, telefono: String) {
     val user = FirebaseAuth.getInstance().currentUser
+
     user?.let {
         val usuarioData = hashMapOf(
             "nombre" to nombre,
             "email" to email,
-            "password" to password // Asegúrate de manejar las contraseñas con seguridad, no guardes la contraseña en texto plano
+            "password" to password,
+            "direccion" to direccion,
+            "telefono" to telefono,
+            "fechaRegistro" to TimeStamp.now()
         )
         bd.collection("usuarios").document(user.uid).set(usuarioData)
             .addOnSuccessListener {

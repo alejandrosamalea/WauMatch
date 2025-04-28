@@ -24,6 +24,8 @@ roomCommonJvm = "2.7.0"
 roomKtx = "2.7.0"
 roomRuntime = "2.7.0"
 roomRuntimeAndroid = "2.7.0"
+runtimeLivedata = "1.8.0"
+firebaseDatabaseKtx = "21.0.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -55,6 +57,9 @@ androidx-animation-core-lint = { group = "androidx.compose.animation", name = "a
 firebase-firestore-ktx = { group = "com.google.firebase", name = "firebase-firestore-ktx", version.ref = "firebaseFirestoreKtx" }
 androidx-room-common-jvm = { group = "androidx.room", name = "room-common-jvm", version.ref = "roomCommonJvm" }
 androidx-room-runtime-android = { group = "androidx.room", name = "room-runtime-android", version.ref = "roomRuntimeAndroid" }
+androidx-runtime-livedata = { group = "androidx.compose.runtime", name = "runtime-livedata", version.ref = "runtimeLivedata" }
+firebase-database-ktx = { group = "com.google.firebase", name = "firebase-database-ktx", version.ref = "firebaseDatabaseKtx" }
+firebase-storage = { module = "com.google.firebase:firebase-storage", version = "21.0.0" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
