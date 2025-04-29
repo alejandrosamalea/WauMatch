@@ -19,12 +19,14 @@ import com.example.waumatch.ui.navigation.MainNavigationBar
 import com.example.waumatch.ui.navigation.NavigationItem
 import com.example.waumatch.ui.screens.*
 import com.example.waumatch.ui.theme.WauMatchTheme
+import com.example.waumatch.viewmodel.CloudinaryManager
 import com.google.firebase.auth.FirebaseAuth
 
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        CloudinaryManager.init(this)
         setContent {
             WauMatchTheme {
                 val navController = rememberNavController()

@@ -5,18 +5,28 @@ import android.net.Uri;
 import android.widget.Toast;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
+import com.cloudinary.android.MediaManager;
+import com.cloudinary.android.callback.ErrorInfo;
+import com.cloudinary.android.callback.UploadCallback;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.storage.FirebaseStorage;
-import com.google.firebase.storage.StorageReference;
+
+import org.jetbrains.annotations.NotNull;
+
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class ProfileManager extends ViewModel {
-    // Clases de datos como objetos Java
+    // Clase interna para Availability
     public static class Availability {
         private String weekdays;
         private String weekends;
+
+        public Availability() {
+            this.weekdays = "";
+            this.weekends = "";
+        }
 
         public Availability(String weekdays, String weekends) {
             this.weekdays = weekdays;
@@ -41,18 +51,18 @@ public class ProfileManager extends ViewModel {
     }
 
     public static class ProfileData {
-        private String name;
-        private String subtitle;
-        private String about;
-        private Availability availability;
-        private String profileImage;
+        private String profileImage = "";
+        private String name = "";
+        private String subtitle = "";
+        private String about = "";
+        private Availability availability = new Availability();
 
-        public ProfileData() {
-            this.name = "";
-            this.subtitle = "Cuidadora Certificada 🐾";
-            this.about = "¡Hola! Soy una apasionada cuidadora de perros con más de 3 años de experiencia...";
-            this.availability = new Availability("9:00 - 18:00", "10:00 - 15:00");
-            this.profileImage = "https://api.a0.dev/assets/image?text=friendly%20person%20with%20dog%20profile%20picture&aspect=1:1";
+        public String getProfileImage() {
+            return profileImage;
+        }
+
+        public void setProfileImage(String profileImage) {
+            this.profileImage = profileImage;
         }
 
         public String getName() {
@@ -86,22 +96,11 @@ public class ProfileManager extends ViewModel {
         public void setAvailability(Availability availability) {
             this.availability = availability;
         }
-
-        public String getProfileImage() {
-            return profileImage;
-        }
-
-        public void setProfileImage(String profileImage) {
-            this.profileImage = profileImage;
-        }
     }
 
-    // Campos de la clase
     private final FirebaseAuth auth;
     private final FirebaseFirestore db;
     private final Context context;
-
-    // Estado observable
     private final MutableLiveData<ProfileData> profileData = new MutableLiveData<>();
     private final MutableLiveData<Boolean> isDataLoaded = new MutableLiveData<>();
     private final MutableLiveData<Boolean> isEditing = new MutableLiveData<>();
@@ -110,13 +109,66 @@ public class ProfileManager extends ViewModel {
         this.context = context;
         this.auth = FirebaseAuth.getInstance();
         this.db = FirebaseFirestore.getInstance();
+        CloudinaryManager.init(context);
         this.profileData.setValue(new ProfileData());
         this.isDataLoaded.setValue(false);
         this.isEditing.setValue(false);
         loadProfile();
     }
 
-    // Métodos para obtener LiveData
+    public void updateProfileImage(String imageUri) {
+        if (auth.getCurrentUser() == null) {
+            Toast.makeText(context, "Usuario no autenticado", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String userId = auth.getCurrentUser().getUid();
+        Uri uri = Uri.parse(imageUri);
+
+        Map<String, Object> options = new HashMap<>();
+        options.put("public_id", "profile_images/" + userId);
+
+        MediaManager.get().upload(uri)
+                .options(options)
+                .callback(new UploadCallback() {
+                    @Override
+                    public void onStart(String requestId) {
+                        Toast.makeText(context, "Subiendo imagen...", Toast.LENGTH_SHORT).show();
+                    }
+
+                    @Override
+                    public void onProgress(String requestId, long bytes, long totalBytes) {}
+
+                    @Override
+                    public void onSuccess(String requestId, Map resultData) {
+                        String url = (String) resultData.get("secure_url");
+                        ProfileData currentData = profileData.getValue();
+                        if (currentData != null) {
+                            currentData.setProfileImage(url);
+                            profileData.setValue(currentData);
+
+                            db.collection("usuarios").document(userId)
+                                    .update("profileImage", url)
+                                    .addOnSuccessListener(aVoid -> {
+                                        Toast.makeText(context, "Foto actualizada", Toast.LENGTH_SHORT).show();
+                                    })
+                                    .addOnFailureListener(e -> {
+                                        Toast.makeText(context, "Error al guardar URL: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                                    });
+                        }
+                    }
+
+                    @Override
+                    public void onError(String requestId, ErrorInfo error) {
+                        Toast.makeText(context, "Error al subir imagen: " + error.getDescription(), Toast.LENGTH_SHORT).show();
+                    }
+
+                    @Override
+                    public void onReschedule(String requestId, ErrorInfo error) {}
+                })
+                .dispatch();
+    }
+
     public MutableLiveData<ProfileData> getProfileData() {
         return profileData;
     }
@@ -129,7 +181,6 @@ public class ProfileManager extends ViewModel {
         return isEditing;
     }
 
-    // Cargar datos del perfil desde Firestore
     public void loadProfile() {
         if (auth.getCurrentUser() == null) {
             isDataLoaded.setValue(true);
@@ -140,18 +191,9 @@ public class ProfileManager extends ViewModel {
         db.collection("usuarios").document(userId)
                 .get()
                 .addOnSuccessListener(documentSnapshot -> {
-                    ProfileData currentData = profileData.getValue();
                     if (documentSnapshot.exists()) {
-                        // Cargar nombre
-                        String name = documentSnapshot.getString("nombre");
-                        if (name == null) name = "Sin nombre";
-                        currentData.setName(name);
-                        // Cargar imagen de perfil
-                        String profileImage = documentSnapshot.getString("profileImage");
-                        if (profileImage != null && !profileImage.isEmpty()) {
-                            currentData.setProfileImage(profileImage);
-                        }
-                        profileData.setValue(currentData);
+                        ProfileData data = documentSnapshot.toObject(ProfileData.class);
+                        profileData.setValue(data);
                     }
                     isDataLoaded.setValue(true);
                 })
@@ -161,71 +203,44 @@ public class ProfileManager extends ViewModel {
                 });
     }
 
-    // Guardar cambios en Firestore
-    public void saveChanges() {
-        if (auth.getCurrentUser() == null) return;
-
-        String userId = auth.getCurrentUser().getUid();
-        ProfileData currentData = profileData.getValue();
-        Map<String, Object> updates = new HashMap<>();
-        updates.put("nombre", currentData.getName());
-        // Añadir profileImage para asegurar que se guarda si cambió
-        updates.put("profileImage", currentData.getProfileImage());
-
-        db.collection("usuarios").document(userId)
-                .update(updates)
-                .addOnSuccessListener(aVoid -> {
-                    Toast.makeText(context, "Cambios guardados", Toast.LENGTH_SHORT).show();
-                    isEditing.setValue(false);
-                })
-                .addOnFailureListener(e -> {
-                    Toast.makeText(context, "Error al guardar: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                });
-    }
-
-    // Actualizar la imagen de perfil
-    public void updateProfileImage(String imageUri) {
+    public void saveChanges(String nombre, String subtitle, String about, @NotNull Map<String, ? extends Map<String, String>> availability, List<String> tags) {
         if (auth.getCurrentUser() == null) {
             Toast.makeText(context, "Usuario no autenticado", Toast.LENGTH_SHORT).show();
             return;
         }
 
         String userId = auth.getCurrentUser().getUid();
-        StorageReference storageRef = FirebaseStorage.getInstance().getReference().child("profile_images/" + userId);
+        ProfileData currentData = profileData.getValue();
+        if (currentData != null) {
+            currentData.setName(nombre);
+            currentData.setSubtitle(subtitle);
+            currentData.setAbout(about);
+            profileData.setValue(currentData);
 
-        // Subir la imagen a Firebase Storage
-        storageRef.putFile(Uri.parse(imageUri))
-                .addOnSuccessListener(taskSnapshot -> {
-                    // Obtener la URL de descarga
-                    storageRef.getDownloadUrl().addOnSuccessListener(uri -> {
-                        ProfileData currentData = profileData.getValue();
-                        currentData.setProfileImage(uri.toString());
-                        profileData.setValue(currentData);
+            Map<String, Object> updates = new HashMap<>();
+            updates.put("about", about);
+            updates.put("nombre", nombre);
+            updates.put("subtitle", subtitle);
+            updates.put("availability", availability);
+            updates.put("tags", tags);
 
-                        // Guardar la URL en Firestore
-                        db.collection("usuarios").document(userId)
-                                .update("profileImage", uri.toString())
-                                .addOnSuccessListener(aVoid -> {
-                                    Toast.makeText(context, "Foto actualizada", Toast.LENGTH_SHORT).show();
-                                })
-                                .addOnFailureListener(e -> {
-                                    Toast.makeText(context, "Error al guardar URL de la foto: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                                });
-                    }).addOnFailureListener(e -> {
+
+            db.collection("usuarios").document(userId)
+                    .update(updates)
+                    .addOnSuccessListener(aVoid -> {
+                        Toast.makeText(context, "Cambios guardados", Toast.LENGTH_SHORT).show();
+                        isEditing.setValue(false);
+                    })
+                    .addOnFailureListener(e -> {
+                        Toast.makeText(context, "Error al guardar cambios: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                     });
-                })
-                .addOnFailureListener(e -> {
-                });
+        }
     }
 
-    // Cambiar el modo de edición
     public void toggleEditing() {
-        Boolean currentEditing = isEditing.getValue();
-        if (currentEditing != null && currentEditing) {
-            saveChanges();
-        } else {
-            isEditing.setValue(true);
-            Toast.makeText(context, "Modo edición activado", Toast.LENGTH_SHORT).show();
+        Boolean isEditingNow = isEditing.getValue();
+        if (isEditingNow != null) {
+            isEditing.setValue(!isEditingNow);
         }
     }
 }

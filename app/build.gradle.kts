@@ -77,4 +77,6 @@ dependencies {
     implementation(libs.glide)
     implementation(libs.coil.compose)
     implementation(libs.firebase.storage)
+    implementation("com.cloudinary:cloudinary-android:2.2.0")
+    implementation ("com.squareup.okhttp3:okhttp:4.9.1")
 }

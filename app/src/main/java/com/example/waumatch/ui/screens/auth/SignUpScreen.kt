@@ -39,6 +39,9 @@ import com.example.waumatch.ui.theme.WauMatchTheme
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.type.DateTime
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @Composable
 fun RegisterScreen(navController: NavController) {
@@ -321,7 +324,7 @@ fun crearUsuarioBD(bd: FirebaseFirestore, email: String, password: String, nombr
             "password" to password,
             "direccion" to direccion,
             "telefono" to telefono,
-            "fechaRegistro" to TimeStamp.now()
+            "fechaRegistro" to SimpleDateFormat("MM/yyyy", Locale.getDefault()).format(Date())
         )
         bd.collection("usuarios").document(user.uid).set(usuarioData)
             .addOnSuccessListener {

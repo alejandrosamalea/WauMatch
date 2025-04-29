@@ -13,6 +13,6 @@ import androidx.compose.ui.graphics.Color
 val NightBlue = Color(0xFF111826)
 val DeepNavy = Color(0xFF022859)
 val OceanBlue = Color(0xFF024873)
-val SkyBlue = Color(0xFF1EB7D9)
+val SkyBlue = Color(0xFF1D7A93)
 val AquaLight = Color(0xFF2EDFF2)
 
