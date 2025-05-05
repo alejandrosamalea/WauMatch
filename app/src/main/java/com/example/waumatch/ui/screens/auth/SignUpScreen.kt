@@ -324,7 +324,8 @@ fun crearUsuarioBD(bd: FirebaseFirestore, email: String, password: String, nombr
             "password" to password,
             "direccion" to direccion,
             "telefono" to telefono,
-            "fechaRegistro" to SimpleDateFormat("MM/yyyy", Locale.getDefault()).format(Date())
+            "fechaRegistro" to SimpleDateFormat("MM/yyyy", Locale.getDefault()).format(Date()),
+            "favoritos" to emptyList<String>()
         )
         bd.collection("usuarios").document(user.uid).set(usuarioData)
             .addOnSuccessListener {

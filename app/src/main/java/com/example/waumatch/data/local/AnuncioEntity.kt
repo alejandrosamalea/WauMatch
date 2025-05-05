@@ -6,7 +6,7 @@ import androidx.room.PrimaryKey
 
 @Entity(tableName = "anuncios")
 data class AnuncioEntity(
-    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    @PrimaryKey val id: String,
     val titulo: String,
     val descripcion: String,
     val fechaInicio: String,
@@ -14,3 +14,4 @@ data class AnuncioEntity(
     val esFavorito: Boolean = false,
     val creador: String
 )
+

@@ -37,39 +37,73 @@ class AnuncioViewModel(application: Application) : AndroidViewModel(application)
 
     fun toggleFavorito(anuncio: AnuncioEntity) {
         viewModelScope.launch {
-            val actualizado = anuncio.copy(esFavorito = !anuncio.esFavorito)
-            repository.actualizarAnuncio(actualizado)
+            val auth = FirebaseAuth.getInstance()
+            val user = auth.currentUser ?: return@launch
+            val db = FirebaseFirestore.getInstance()
+            val userDocRef = db.collection("usuarios").document(user.uid)
+
+            try {
+                val snapshot = userDocRef.get().await()
+                val matchIds = snapshot.get("matchIds") as? List<String> ?: emptyList()
+                val anuncioId = anuncio.id
+
+                val nuevosMatchIds = if (matchIds.contains(anuncioId)) {
+                    matchIds - anuncioId // Quitar de favoritos
+                } else {
+                    matchIds + anuncioId // Agregar a favoritos
+                }
+
+                userDocRef.update("matchIds", nuevosMatchIds).await()
+
+                val actualizado = anuncio.copy(esFavorito = nuevosMatchIds.contains(anuncioId))
+                repository.actualizarAnuncio(actualizado)
+
+            } catch (e: Exception) {
+                Log.e("toggleFavorito", "Error al actualizar favoritos: ${e.message}")
+            }
         }
     }
-    // Metodo para refrescar los anuncios desde Firebase
+
     fun refreshAnuncios() {
         sincronizarDesdeFirebase()
-        viewModelScope.launch {
-            sincronizarDesdeFirebase()
-        }
     }
+
     private fun sincronizarDesdeFirebase() {
         viewModelScope.launch {
             try {
                 val db = FirebaseFirestore.getInstance()
+                val auth = FirebaseAuth.getInstance()
+                val user = auth.currentUser
+
+                val matchIds: List<String> = if (user != null) {
+                    try {
+                        val userSnapshot = db.collection("usuarios").document(user.uid).get().await()
+                        userSnapshot.get("matchIds") as? List<String> ?: emptyList()
+                    } catch (e: Exception) {
+                        emptyList()
+                    }
+                } else {
+                    emptyList()
+                }
+
                 val snapshot = db.collection("anuncios").get().await()
 
                 val anunciosFirebase = snapshot.documents.mapNotNull { doc ->
                     try {
+                        val anuncioId = doc.id
                         AnuncioEntity(
-                            id = 0,
+                            id = anuncioId,
                             titulo = doc.getString("titulo") ?: "",
                             descripcion = doc.getString("descripcion") ?: "",
                             fechaInicio = doc.getString("fechaInicio") ?: "",
                             fechaFin = doc.getString("fechaFin") ?: "",
-                            esFavorito = doc.getBoolean("esFavorito") ?: false,
+                            esFavorito = matchIds.contains(anuncioId),
                             creador = doc.getString("creador") ?: ""
                         )
                     } catch (e: Exception) {
                         null
                     }
                 }
-
 
                 dao.clearAll()
                 anunciosFirebase.forEach { dao.insert(it) }
@@ -82,20 +116,18 @@ class AnuncioViewModel(application: Application) : AndroidViewModel(application)
 
     private fun guardarAnuncioEnFirebase(anuncio: AnuncioEntity) {
         val auth = FirebaseAuth.getInstance()
-        val userUid = auth.currentUser?.uid ?: return // Obtenemos el UID del usuario autenticado
+        val userUid = auth.currentUser?.uid ?: return
         val db = FirebaseFirestore.getInstance()
 
-        // Consulta para obtener el nombre del usuario
         db.collection("usuarios").document(userUid).get().addOnSuccessListener { document ->
-            val userName = document.getString("nombre") ?: return@addOnSuccessListener // Suponiendo que el campo se llama 'nombre'
+            val userName = document.getString("nombre") ?: return@addOnSuccessListener
 
             val anuncioMap = mapOf(
                 "titulo" to anuncio.titulo,
                 "descripcion" to anuncio.descripcion,
                 "fechaInicio" to anuncio.fechaInicio,
                 "fechaFin" to anuncio.fechaFin,
-                "esFavorito" to anuncio.esFavorito,
-                "creador" to userName // Usamos el nombre del usuario
+                "creador" to userName
             )
 
             db.collection("anuncios").add(anuncioMap)
@@ -103,5 +135,4 @@ class AnuncioViewModel(application: Application) : AndroidViewModel(application)
             Log.e("Firebase", "Error al obtener el nombre del usuario", exception)
         }
     }
-
 }

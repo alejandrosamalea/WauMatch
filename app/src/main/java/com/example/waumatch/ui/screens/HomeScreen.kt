@@ -23,6 +23,7 @@ fun HomeScreen() {
     val viewModel: AnuncioViewModel = viewModel(factory = AnuncioViewModelFactory(application))
 
     val anuncios by viewModel.anuncios.collectAsState()
+    var anuncioExpandido by remember { mutableStateOf<String?>(null) }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -40,6 +41,9 @@ fun HomeScreen() {
                 items(anuncios) { anuncio ->
                     AnuncioCard(
                         anuncio = anuncio,
+                        isExpanded = anuncioExpandido == anuncio.id,
+                        onClick = { anuncioExpandido = anuncio.id },
+                        onClose = { anuncioExpandido = null },
                         onToggleFavorito = { viewModel.toggleFavorito(it) })
                 }
             }

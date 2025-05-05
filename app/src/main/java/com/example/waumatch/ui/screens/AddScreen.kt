@@ -133,6 +133,7 @@ fun AddScreen() {
                     onClick = {
                         if (titulo.isNotBlank() && descripcion.isNotBlank() && fechaInicio.isNotBlank() && fechaFin.isNotBlank()) {
                             val nuevoAnuncio = AnuncioEntity(
+                                id = UUID.randomUUID().toString(),
                                 titulo = titulo,
                                 descripcion = descripcion,
                                 fechaInicio = fechaInicio,
@@ -170,6 +171,9 @@ fun AddScreen() {
                 items(anuncios) { anuncio ->
                     AnuncioCard(
                         anuncio = anuncio,
+                        isExpanded = false,
+                        onClick = {},
+                        onClose = {},
                         onToggleFavorito = { viewModel.toggleFavorito(it) })
                 }
             }
