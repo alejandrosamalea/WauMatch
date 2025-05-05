@@ -55,7 +55,7 @@ class MainActivity : ComponentActivity() {
                     ) {
                         composable(NavigationItem.Home.route) { HomeScreen() }
                         composable(NavigationItem.Chat.route) { ChatScreen() }
-                        composable(NavigationItem.Add.route) { AddScreen() }
+                        composable(NavigationItem.Add.route) { AddScreen(navController) }
                         composable(NavigationItem.Favorites.route) { FavoritesScreen() }
                         composable(NavigationItem.Profile.route) { ProfileScreen() }
                         composable(NavigationItem.Login.route) { LoginScreen(navController) }
