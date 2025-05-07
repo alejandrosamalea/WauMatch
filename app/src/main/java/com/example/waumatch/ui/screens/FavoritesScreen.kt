@@ -1,18 +1,26 @@
 package com.example.waumatch.ui.screens
 
 import android.app.Application
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.Brush
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
 import com.example.waumatch.ui.components.AnuncioCard
-import com.example.waumatch.ui.components.WauMatchHeader
+import com.example.waumatch.ui.components.SearchBar
 import com.example.waumatch.viewmodel.AnuncioViewModel
 import com.example.waumatch.viewmodel.AnuncioViewModelFactory
 import com.google.firebase.auth.FirebaseAuth
@@ -20,15 +28,15 @@ import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 
 @Composable
-fun FavoritesScreen() {
+fun FavoritesScreen(navController: NavController) {
     val context = LocalContext.current
     val application = context.applicationContext as Application
     val viewModel: AnuncioViewModel = viewModel(factory = AnuncioViewModelFactory(application))
 
     val anuncios by viewModel.anuncios.collectAsState()
     var favoritos by remember { mutableStateOf<List<String>>(emptyList()) }
+    var searchQuery by remember { mutableStateOf("") }
 
-    // Cargar los matchIds del usuario
     LaunchedEffect(Unit) {
         val user = FirebaseAuth.getInstance().currentUser
         if (user != null) {
@@ -38,30 +46,63 @@ fun FavoritesScreen() {
         }
     }
 
+    // Filtrar anuncios favoritos
     val anunciosFavoritos = anuncios.filter { favoritos.contains(it.id) }
+    // Filtrar por búsqueda (buscar en título o descripción)
+    val anunciosFiltrados = if (searchQuery.isBlank()) {
+        anunciosFavoritos
+    } else {
+        anunciosFavoritos.filter {
+            it.titulo.contains(searchQuery, ignoreCase = true) ||
+                    it.descripcion.contains(searchQuery, ignoreCase = true)
+        }
+    }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(Color(0xFF024873), Color(0xFF1D7A93))
+                )
+            )
     ) {
-        WauMatchHeader()
-        Spacer(modifier = Modifier.height(16.dp))
+        Column(modifier = Modifier.fillMaxSize()) {
+            // Barra de búsqueda
+            SearchBar(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                onFilterClick = { /* Lógica de filtro */ }
+            )
 
-        if (anunciosFavoritos.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("No tienes anuncios en favoritos.")
-            }
-        } else {
-            LazyColumn(modifier = Modifier.fillMaxSize()) {
-                items(anunciosFavoritos) { anuncio ->
-                    AnuncioCard(
-                        anuncio = anuncio,
-                        isExpanded = false,
-                        onClick = {},
-                        onClose = {},
-                        onToggleFavorito = { viewModel.toggleFavorito(it) }
+            // Cuadrícula de anuncios favoritos o mensaje si está vacío
+            if (anunciosFiltrados.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "No tienes anuncios en favoritos o no coinciden con la búsqueda.",
+                        style = MaterialTheme.typography.bodyLarge.copy(color = Color.White)
                     )
+                }
+            } else {
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(2),
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(horizontal = 8.dp),
+                    contentPadding = PaddingValues(bottom = 8.dp)
+                ) {
+                    items(anunciosFiltrados) { anuncio ->
+                        AnuncioCard(
+                            anuncio = anuncio,
+                            onClick = { /* Lógica de clic */ },
+                            onToggleFavorito = { viewModel.toggleFavorito(it) }
+                        )
+                    }
                 }
             }
         }

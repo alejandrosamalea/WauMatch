@@ -134,7 +134,7 @@ fun AddScreen(navController: NavController) {
                                     fechaInicio = fechaInicio,
                                     fechaFin = fechaFin,
                                     creador = creador,
-                                    esFavorito = false
+                                    esFavorito = false,
                                 )
                                 viewModel.agregarAnuncio(nuevoAnuncio)
                                 Toast.makeText(context, "Anuncio creado", Toast.LENGTH_SHORT).show()
@@ -174,9 +174,7 @@ fun AddScreen(navController: NavController) {
                     items(anuncios) { anuncio ->
                         AnuncioCard(
                             anuncio = anuncio,
-                            isExpanded = false,
                             onClick = {},
-                            onClose = {},
                             onToggleFavorito = { viewModel.toggleFavorito(it) }
                         )
                     }

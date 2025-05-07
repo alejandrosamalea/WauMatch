@@ -19,8 +19,23 @@ class AnuncioViewModel(application: Application) : AndroidViewModel(application)
     private val repository: AnuncioRepository
     private val dao = AppDatabase.getDatabase(application).anuncioDao()
 
+    // Flujo de anuncios mapeados a la UI
     val anuncios = dao.getAll()
-        .map { it }
+        .map { entities ->
+            val user = FirebaseAuth.getInstance().currentUser
+            val userId = user?.uid ?: ""
+            entities.map { entity ->
+                AnuncioEntity(
+                    id = entity.id,
+                    titulo = entity.titulo,
+                    descripcion = entity.descripcion,
+                    fechaInicio = entity.fechaInicio,
+                    fechaFin = entity.fechaFin,
+                    creador = entity.creador,
+                    esFavorito = entity.esFavorito
+                )
+            }
+        }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), emptyList())
 
     init {
@@ -55,7 +70,15 @@ class AnuncioViewModel(application: Application) : AndroidViewModel(application)
 
                 userDocRef.update("matchIds", nuevosMatchIds).await()
 
-                val actualizado = anuncio.copy(esFavorito = nuevosMatchIds.contains(anuncioId))
+                val actualizado = AnuncioEntity(
+                    id = anuncio.id,
+                    titulo = anuncio.titulo,
+                    descripcion = anuncio.descripcion,
+                    fechaInicio = anuncio.fechaInicio,
+                    fechaFin = anuncio.fechaFin,
+                    esFavorito = nuevosMatchIds.contains(anuncioId),
+                    creador = anuncio.creador
+                )
                 repository.actualizarAnuncio(actualizado)
 
             } catch (e: Exception) {

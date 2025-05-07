@@ -53,10 +53,10 @@ class MainActivity : ComponentActivity() {
                         startDestination = NavigationItem.Login.route,
                         modifier = Modifier.padding(innerPadding)
                     ) {
-                        composable(NavigationItem.Home.route) { HomeScreen() }
+                        composable(NavigationItem.Home.route) { HomeScreen(navController) }
                         composable(NavigationItem.Chat.route) { ChatScreen() }
                         composable(NavigationItem.Add.route) { AddScreen(navController) }
-                        composable(NavigationItem.Favorites.route) { FavoritesScreen() }
+                        composable(NavigationItem.Favorites.route) { FavoritesScreen(navController) }
                         composable(NavigationItem.Profile.route) { ProfileScreen() }
                         composable(NavigationItem.Login.route) { LoginScreen(navController) }
                         composable(NavigationItem.Registrar.route) { RegisterScreen(navController)

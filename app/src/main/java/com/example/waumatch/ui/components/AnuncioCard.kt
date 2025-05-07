@@ -1,145 +1,148 @@
 package com.example.waumatch.ui.components
 
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.DateRange
+import com.example.waumatch.R
 import com.example.waumatch.data.local.AnuncioEntity
 
 @Composable
 fun AnuncioCard(
     anuncio: AnuncioEntity,
-    isExpanded: Boolean,
     onClick: () -> Unit,
-    onClose: () -> Unit,
-    onToggleFavorito: (AnuncioEntity) -> Unit,
-    // onCreadorClick: (String) -> Unit
+    onToggleFavorito: (AnuncioEntity) -> Unit
 ) {
+    val userId = "usuario_actual"
+    val isSeeker = anuncio.creador == userId
+
     Card(
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
         modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-        onClick = { onClick() }
+            .width(IntrinsicSize.Max)
+            .padding(8.dp)
+            .border(
+                width = if (isSeeker) 2.dp else 0.dp,
+                color = if (isSeeker) Color(0xFF2EDFF2) else Color.Transparent,
+                shape = RoundedCornerShape(12.dp)
+            )
+            .clickable { onClick() },
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
     ) {
-        if (isExpanded) {
-            Box(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-                IconButton(
-                    onClick = onClose,
+        Column {
+            Image(
+                painter = painterResource(id = R.drawable.perro),
+                contentDescription = "Imagen del anuncio",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(150.dp),
+                contentScale = ContentScale.Crop
+            )
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = anuncio.titulo,
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        color = Color(0xFF111826),
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
+                    ),
                     modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(8.dp)
+                        .weight(1f)
+                        .padding(bottom = 4.dp, start = 12.dp) // Padding solo a la izquierda y abajo
+                )
+                IconButton(
+                    onClick = { onToggleFavorito(anuncio) },
+                    modifier = Modifier.padding(start = 8.dp, end = 12.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "Cerrar",
-                        tint = Color.Gray
-                    )
-                }
-
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 20.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    // TextButton(
-                    //      onClick = { onCreadorClick(anuncio.creador) },
-                    //      modifier = Modifier.padding(bottom = 8.dp)
-                    // ) {
-                    Text(
-                        text = anuncio.creador,
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
-                    //}
-
-
-                    // Título
-                    Text(
-                        text = anuncio.titulo,
-                        style = MaterialTheme.typography.titleLarge,
-                        modifier = Modifier.padding(vertical = 8.dp)
-                    )
-
-                    // Descripción
-                    Text(
-                        text = anuncio.descripcion,
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(vertical = 8.dp)
-                    )
-
-                    Text(
-                        text = "Disponibilidad 🕓",
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(top = 8.dp)
-                    )
-
-                    // Disponibilidad
-                    Text(
-                        text = "Inicio: ${anuncio.fechaInicio}",
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(top = 8.dp)
-                    )
-                    Text(
-                        text = "Final: ${anuncio.fechaFin}",
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(top = 8.dp)
+                        imageVector = if (anuncio.esFavorito) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                        contentDescription = if (anuncio.esFavorito) "Quitar de favoritos" else "Añadir a favoritos",
+                        tint = if (anuncio.esFavorito) Color.Red else Color.Gray,
+                        modifier = Modifier.size(24.dp)
                     )
                 }
             }
-        } else {
-            // Vista compacta
-            Box(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(16.dp)) {
+
+            Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)) {
+                if (isSeeker) {
                     Text(
-                        text = "Anuncio creado por ${anuncio.creador}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.align(Alignment.CenterHorizontally)
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = anuncio.titulo,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = anuncio.descripcion,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 2
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "${anuncio.fechaInicio} - ${anuncio.fechaFin}",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary
+                        text = "Busca Cuidador",
+                        modifier = Modifier
+                            .align(Alignment.End)
+                            .background(Color(0xFF2EDFF2), RoundedCornerShape(12.dp))
+                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            color = Color(0xFF111826),
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
+                        )
                     )
                 }
 
-                IconButton(
-                    onClick = { onToggleFavorito(anuncio) },
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(8.dp)
+                // Creador
+                Text(
+                    text = "Creador: ${anuncio.creador}",
+                    style = MaterialTheme.typography.bodySmall.copy(color = Color(0xFF666666)),
+                    modifier = Modifier.padding(bottom = 4.dp)
+                )
+
+                // Fechas (fechaInicio - fechaFin)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(bottom = 4.dp)
                 ) {
                     Icon(
-                        imageVector = if (anuncio.esFavorito) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                        contentDescription = "Favorito",
-                        tint = if (anuncio.esFavorito) Color.Red else Color.Gray
+                        imageVector = Icons.Default.DateRange,
+                        contentDescription = "Rango de fechas",
+                        tint = Color(0xFF666666),
+                        modifier = Modifier.size(14.dp)
                     )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "${anuncio.fechaInicio} - ${anuncio.fechaFin}",
+                        style = MaterialTheme.typography.bodySmall.copy(color = Color(0xFF666666))
+                    )
+                }
+
+                // Descripción
+                if (isSeeker) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(bottom = 4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = "Descripción",
+                            tint = Color(0xFF666666),
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = anuncio.descripcion,
+                            style = MaterialTheme.typography.bodySmall.copy(color = Color(0xFF666666))
+                        )
+                    }
                 }
             }
         }
