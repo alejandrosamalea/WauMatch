@@ -15,5 +15,7 @@ sealed class NavigationItem(
     object Profile : NavigationItem("profile", R.drawable.profile, "Perfil")
     object Login : NavigationItem("login", R.drawable.profile, "Login")
     object Registrar : NavigationItem("registrar", R.drawable.profile, "Registrar")
+    object Recuperar : NavigationItem("recuperar", R.drawable.profile, "Recuperar")
+
 
 }

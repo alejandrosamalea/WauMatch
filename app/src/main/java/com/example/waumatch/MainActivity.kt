@@ -1,5 +1,6 @@
 package com.example.waumatch
 
+import RecuperarScreen
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -43,7 +44,7 @@ class MainActivity : ComponentActivity() {
                 }
                 Scaffold(
                     bottomBar = {
-                        if (selectedDestination != NavigationItem.Login.route && selectedDestination != NavigationItem.Registrar.route) {
+                        if (selectedDestination != NavigationItem.Login.route && selectedDestination != NavigationItem.Registrar.route && selectedDestination != NavigationItem.Recuperar.route) {
                             MainNavigationBar(navController)
                         }
                     }
@@ -59,8 +60,8 @@ class MainActivity : ComponentActivity() {
                         composable(NavigationItem.Favorites.route) { FavoritesScreen(navController) }
                         composable(NavigationItem.Profile.route) { ProfileScreen() }
                         composable(NavigationItem.Login.route) { LoginScreen(navController) }
-                        composable(NavigationItem.Registrar.route) { RegisterScreen(navController)
-                        }
+                        composable(NavigationItem.Registrar.route) { RegisterScreen(navController) }
+                        composable(NavigationItem.Recuperar.route) { RecuperarScreen(navController)}
                     }
                 }
             }

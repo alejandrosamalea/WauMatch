@@ -1,6 +1,7 @@
 package com.example.waumatch.ui.screens
 
 import android.app.TimePickerDialog
+import android.content.Intent
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -25,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Color as ComposeColor
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -43,6 +45,7 @@ import java.util.*
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.waumatch.MainActivity
 
 
 @Composable
@@ -165,6 +168,21 @@ fun ProfileScreen(viewModel: ProfileManager = viewModel(factory = ProfileManager
                     .padding(top = 60.dp, bottom = 30.dp)
                     .clip(RoundedCornerShape(bottomStart = 30.dp, bottomEnd = 30.dp))
             ) {
+
+                TextButton(
+                    onClick = {
+                        FirebaseAuth.getInstance().signOut()
+
+                        val intent = Intent(context, MainActivity::class.java).apply {
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                        }
+                        context.startActivity(intent)
+                    }
+                ) {
+                    Text(text = "Cerrar sesión", color = Color(0xFF2EDFF2))
+
+
+                }
                 if (isOwnProfile) {
                     IconButton(
                         onClick = {

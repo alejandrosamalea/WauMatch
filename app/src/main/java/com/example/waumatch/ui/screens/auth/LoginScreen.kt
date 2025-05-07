@@ -191,7 +191,7 @@ fun LoginScreen(navController: NavController) {
                     color = Color(0xFF1EB7D9),
                     modifier = Modifier
                         .align(Alignment.End)
-                        .clickable { /* TODO: Implementar recuperación */ }
+                        .clickable { navController.navigate(NavigationItem.Recuperar.route) }
                         .padding(bottom = 24.dp)
                 )
 
