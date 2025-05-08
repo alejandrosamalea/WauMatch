@@ -5,7 +5,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.padding
-import androidx.compose.lint.Names.Runtime.LaunchedEffect
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -19,6 +18,8 @@ import com.example.waumatch.auth.RegisterScreen
 import com.example.waumatch.ui.navigation.MainNavigationBar
 import com.example.waumatch.ui.navigation.NavigationItem
 import com.example.waumatch.ui.screens.*
+import com.example.waumatch.ui.screens.Profiles.ForeignProfileScreen
+import com.example.waumatch.ui.screens.Profiles.ProfileScreen
 import com.example.waumatch.ui.theme.WauMatchTheme
 import com.example.waumatch.viewmodel.CloudinaryManager
 import com.google.firebase.auth.FirebaseAuth
@@ -44,7 +45,7 @@ class MainActivity : ComponentActivity() {
                 }
                 Scaffold(
                     bottomBar = {
-                        if (selectedDestination != NavigationItem.Login.route && selectedDestination != NavigationItem.Registrar.route && selectedDestination != NavigationItem.Recuperar.route) {
+                        if (selectedDestination != NavigationItem.Login.route && selectedDestination != NavigationItem.Registrar.route && selectedDestination != NavigationItem.Recuperar.route && selectedDestination != NavigationItem.Add.route) {
                             MainNavigationBar(navController)
                         }
                     }
@@ -61,7 +62,20 @@ class MainActivity : ComponentActivity() {
                         composable(NavigationItem.Profile.route) { ProfileScreen() }
                         composable(NavigationItem.Login.route) { LoginScreen(navController) }
                         composable(NavigationItem.Registrar.route) { RegisterScreen(navController) }
-                        composable(NavigationItem.Recuperar.route) { RecuperarScreen(navController)}
+                        composable(NavigationItem.Recuperar.route) { RecuperarScreen(navController) }
+                        composable(NavigationItem.ForeignProfile.route) { backStackEntry ->
+                            val userId = backStackEntry.arguments?.getString("userId")
+                            val currentUser = FirebaseAuth.getInstance().currentUser
+                            if (currentUser != null) {
+                                ForeignProfileScreen(
+                                    userId = userId?.takeIf { it != "{userId}" && it.isNotEmpty() } ?: currentUser.uid
+                                )
+                            } else {
+                                navController.navigate(NavigationItem.Login.route) {
+                                    popUpTo(navController.graph.startDestinationId) { inclusive = true }
+                                }
+                            }
+                        }
                     }
                 }
             }

@@ -1,4 +1,4 @@
-package com.example.waumatch.ui.screens
+package com.example.waumatch.ui.screens.Profiles
 
 import android.app.TimePickerDialog
 import android.content.Intent
@@ -50,7 +50,6 @@ import com.example.waumatch.MainActivity
 @Composable
 fun ProfileScreen(viewModel: ProfileManager = viewModel(factory = ProfileManagerFactory(LocalContext.current))) {
     val context = LocalContext.current
-    val isOwnProfile = true
     val profileData by viewModel.getProfileData().observeAsState(ProfileManager.ProfileData())
 
     var nombre by remember { mutableStateOf("Sin nombre") }
@@ -178,29 +177,27 @@ fun ProfileScreen(viewModel: ProfileManager = viewModel(factory = ProfileManager
                 ) {
                     Text(text = "Cerrar sesión", color = Color(0xFF2EDFF2))
                 }
-                if (isOwnProfile) {
-                    IconButton(
-                        onClick = {
-                            if (isEditing) {
-                                if (currentUser != null) {
-                                    viewModel.saveChanges(nombre, subtitle, about, availability, tags)
-                                }
-                            } else {
-                                viewModel.toggleEditing()
+                IconButton(
+                    onClick = {
+                        if (isEditing) {
+                            if (currentUser != null) {
+                                viewModel.saveChanges(nombre, subtitle, about, availability, tags)
                             }
-                        },
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(top = 10.dp, end = 20.dp)
-                            .background(ComposeColor(0x1A1EB7D9), RoundedCornerShape(20.dp))
-                            .size(44.dp)
-                    ) {
-                        Icon(
-                            imageVector = if (isEditing) Icons.Default.Check else Icons.Default.Edit,
-                            contentDescription = if (isEditing) "Save" else "Edit",
-                            tint = ComposeColor(0xFF2EDFF2)
-                        )
-                    }
+                        } else {
+                            viewModel.toggleEditing()
+                        }
+                    },
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(top = 10.dp, end = 20.dp)
+                        .background(ComposeColor(0x1A1EB7D9), RoundedCornerShape(20.dp))
+                        .size(44.dp)
+                ) {
+                    Icon(
+                        imageVector = if (isEditing) Icons.Default.Check else Icons.Default.Edit,
+                        contentDescription = if (isEditing) "Save" else "Edit",
+                        tint = ComposeColor(0xFF2EDFF2)
+                    )
                 }
                 Column(
                     modifier = Modifier
@@ -249,7 +246,7 @@ fun ProfileScreen(viewModel: ProfileManager = viewModel(factory = ProfileManager
                         Text(
                             text = "${nombre.length}/$MAX_NAME_LENGTH",
                             fontSize = 12.sp,
-                            color = ComposeColor.White, // Changed to white
+                            color = ComposeColor.White,
                             modifier = Modifier.padding(top = 4.dp)
                         )
                     } else {
@@ -269,11 +266,11 @@ fun ProfileScreen(viewModel: ProfileManager = viewModel(factory = ProfileManager
                                 .width(200.dp)
                                 .border(1.dp, ComposeColor(0xFF2EDFF2), RoundedCornerShape(8.dp)),
                             textStyle = LocalTextStyle.current.copy(
-                                color = ComposeColor.White, // Changed to white
+                                color = ComposeColor.White,
                                 fontSize = 14.sp,
                                 textAlign = TextAlign.Center
                             ),
-                            placeholder = { Text("Tu descripción corta", color = ComposeColor.White) }, // Changed to white
+                            placeholder = { Text("Tu descripción corta", color = ComposeColor.White) },
                             colors = TextFieldDefaults.colors(
                                 focusedContainerColor = ComposeColor.Transparent,
                                 unfocusedContainerColor = ComposeColor.Transparent,
@@ -284,7 +281,7 @@ fun ProfileScreen(viewModel: ProfileManager = viewModel(factory = ProfileManager
                         Text(
                             text = "${subtitle.length}/$MAX_SUBTITLE_LENGTH",
                             fontSize = 12.sp,
-                            color = ComposeColor.White, // Changed to white
+                            color = ComposeColor.White,
                             modifier = Modifier.padding(top = 4.dp)
                         )
                     } else {
@@ -351,7 +348,7 @@ fun ProfileScreen(viewModel: ProfileManager = viewModel(factory = ProfileManager
                         Text(
                             text = "${about.length}/$MAX_ABOUT_LENGTH",
                             fontSize = 12.sp,
-                            color = ComposeColor.White, // Changed to white
+                            color = ComposeColor.White,
                             modifier = Modifier
                                 .align(Alignment.End)
                                 .padding(top = 4.dp)
@@ -394,7 +391,7 @@ fun ProfileScreen(viewModel: ProfileManager = viewModel(factory = ProfileManager
                             TextField(
                                 value = newTag,
                                 onValueChange = { newTag = it },
-                                placeholder = { Text("Añadir nueva etiqueta", color = ComposeColor.White) }, // Changed to white
+                                placeholder = { Text("Añadir nueva etiqueta", color = ComposeColor.White) },
                                 modifier = Modifier
                                     .weight(1f)
                                     .border(1.dp, ComposeColor(0xFF2EDFF2), RoundedCornerShape(8.dp)),
@@ -488,27 +485,6 @@ fun ProfileScreen(viewModel: ProfileManager = viewModel(factory = ProfileManager
                         reviewerName = "Carlos P.",
                         rating = 5,
                         reviewText = "Excelente cuidadora. Mi perro regresó muy feliz y bien cuidado."
-                    )
-                }
-            }
-        }
-        if (!isOwnProfile) {
-            item {
-                Button(
-                    onClick = { /* Acción de contacto */ },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 30.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = ComposeColor(0xFF2EDFF2),
-                        contentColor = ComposeColor(0xFF111826)
-                    )
-                ) {
-                    Text(
-                        text = "Contactar",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold
                     )
                 }
             }
