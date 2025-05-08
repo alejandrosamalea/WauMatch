@@ -47,7 +47,6 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.waumatch.MainActivity
 
-
 @Composable
 fun ProfileScreen(viewModel: ProfileManager = viewModel(factory = ProfileManagerFactory(LocalContext.current))) {
     val context = LocalContext.current
@@ -146,7 +145,7 @@ fun ProfileScreen(viewModel: ProfileManager = viewModel(factory = ProfileManager
         uri?.let {
             localProfileImage = it.toString()
             if (currentUser != null) {
-                viewModel.updateProfileImage(it.toString()) // No es necesario el indicador de carga
+                viewModel.updateProfileImage(it.toString())
             }
         }
     }
@@ -168,11 +167,9 @@ fun ProfileScreen(viewModel: ProfileManager = viewModel(factory = ProfileManager
                     .padding(top = 60.dp, bottom = 30.dp)
                     .clip(RoundedCornerShape(bottomStart = 30.dp, bottomEnd = 30.dp))
             ) {
-
                 TextButton(
                     onClick = {
                         FirebaseAuth.getInstance().signOut()
-
                         val intent = Intent(context, MainActivity::class.java).apply {
                             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                         }
@@ -180,15 +177,13 @@ fun ProfileScreen(viewModel: ProfileManager = viewModel(factory = ProfileManager
                     }
                 ) {
                     Text(text = "Cerrar sesión", color = Color(0xFF2EDFF2))
-
-
                 }
                 if (isOwnProfile) {
                     IconButton(
                         onClick = {
                             if (isEditing) {
                                 if (currentUser != null) {
-                                    viewModel.saveChanges(nombre, subtitle, about, availability,tags)
+                                    viewModel.saveChanges(nombre, subtitle, about, availability, tags)
                                 }
                             } else {
                                 viewModel.toggleEditing()
@@ -254,7 +249,7 @@ fun ProfileScreen(viewModel: ProfileManager = viewModel(factory = ProfileManager
                         Text(
                             text = "${nombre.length}/$MAX_NAME_LENGTH",
                             fontSize = 12.sp,
-                            color = ComposeColor(0xFF666666),
+                            color = ComposeColor.White, // Changed to white
                             modifier = Modifier.padding(top = 4.dp)
                         )
                     } else {
@@ -274,11 +269,11 @@ fun ProfileScreen(viewModel: ProfileManager = viewModel(factory = ProfileManager
                                 .width(200.dp)
                                 .border(1.dp, ComposeColor(0xFF2EDFF2), RoundedCornerShape(8.dp)),
                             textStyle = LocalTextStyle.current.copy(
-                                color = ComposeColor(0xFF1EB7D9),
+                                color = ComposeColor.White, // Changed to white
                                 fontSize = 14.sp,
                                 textAlign = TextAlign.Center
                             ),
-                            placeholder = { Text("Tu descripción corta", color = ComposeColor(0xFF666666)) },
+                            placeholder = { Text("Tu descripción corta", color = ComposeColor.White) }, // Changed to white
                             colors = TextFieldDefaults.colors(
                                 focusedContainerColor = ComposeColor.Transparent,
                                 unfocusedContainerColor = ComposeColor.Transparent,
@@ -289,7 +284,7 @@ fun ProfileScreen(viewModel: ProfileManager = viewModel(factory = ProfileManager
                         Text(
                             text = "${subtitle.length}/$MAX_SUBTITLE_LENGTH",
                             fontSize = 12.sp,
-                            color = ComposeColor(0xFF666666),
+                            color = ComposeColor.White, // Changed to white
                             modifier = Modifier.padding(top = 4.dp)
                         )
                     } else {
@@ -307,7 +302,6 @@ fun ProfileScreen(viewModel: ProfileManager = viewModel(factory = ProfileManager
                     ) {
                         StatItem(number = "4.9", label = "Rating")
                         StatItem(number = "127", label = "Cuidados")
-
                         val (mesReg, anioReg) = fechaRegistro.split("/").map { it.toInt() }
                         val totalMeses = (Calendar.getInstance().get(Calendar.YEAR) - anioReg) * 12 + (Calendar.getInstance().get(Calendar.MONTH) + 1 - mesReg)
                         StatItem(number = if (totalMeses >= 12) (totalMeses / 12).toString() else totalMeses.toString(), label = if (totalMeses >= 12) if (totalMeses / 12 == 1) "Año" else "Años" else if (totalMeses == 1) "Mes" else "Meses")
@@ -357,7 +351,7 @@ fun ProfileScreen(viewModel: ProfileManager = viewModel(factory = ProfileManager
                         Text(
                             text = "${about.length}/$MAX_ABOUT_LENGTH",
                             fontSize = 12.sp,
-                            color = ComposeColor(0xFF666666),
+                            color = ComposeColor.White, // Changed to white
                             modifier = Modifier
                                 .align(Alignment.End)
                                 .padding(top = 4.dp)
@@ -400,7 +394,7 @@ fun ProfileScreen(viewModel: ProfileManager = viewModel(factory = ProfileManager
                             TextField(
                                 value = newTag,
                                 onValueChange = { newTag = it },
-                                placeholder = { Text("Añadir nueva etiqueta", color = ComposeColor(0xFF666666)) },
+                                placeholder = { Text("Añadir nueva etiqueta", color = ComposeColor.White) }, // Changed to white
                                 modifier = Modifier
                                     .weight(1f)
                                     .border(1.dp, ComposeColor(0xFF2EDFF2), RoundedCornerShape(8.dp)),

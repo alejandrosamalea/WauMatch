@@ -1,9 +1,17 @@
 package com.example.waumatch.viewmodel
 
+import android.annotation.SuppressLint
 import android.app.Application
+import android.content.Context
+import android.net.Uri
 import android.util.Log
+import android.widget.Toast
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.cloudinary.android.callback.ErrorInfo
+import com.cloudinary.android.MediaManager
+import com.cloudinary.android.callback.UploadCallback
 import com.example.waumatch.data.AnuncioRepository
 import com.example.waumatch.data.local.AnuncioEntity
 import com.example.waumatch.data.local.AppDatabase
@@ -18,8 +26,7 @@ import kotlinx.coroutines.tasks.await
 class AnuncioViewModel(application: Application) : AndroidViewModel(application) {
     private val repository: AnuncioRepository
     private val dao = AppDatabase.getDatabase(application).anuncioDao()
-
-    // Flujo de anuncios mapeados a la UI
+    //    // Flujo de anuncios mapeados a la UI
     val anuncios = dao.getAll()
         .map { entities ->
             val user = FirebaseAuth.getInstance().currentUser
@@ -32,7 +39,8 @@ class AnuncioViewModel(application: Application) : AndroidViewModel(application)
                     fechaInicio = entity.fechaInicio,
                     fechaFin = entity.fechaFin,
                     creador = entity.creador,
-                    esFavorito = entity.esFavorito
+                    esFavorito = entity.esFavorito,
+                    imagenes = entity.imagenes
                 )
             }
         }
@@ -43,10 +51,10 @@ class AnuncioViewModel(application: Application) : AndroidViewModel(application)
         sincronizarDesdeFirebase()
     }
 
-    fun agregarAnuncio(anuncio: AnuncioEntity) {
+    fun agregarAnuncio(anuncio: AnuncioEntity, context: Context) {
         viewModelScope.launch {
             repository.insert(anuncio)
-            guardarAnuncioEnFirebase(anuncio)
+            guardarAnuncioEnFirebase(anuncio,context)
         }
     }
 
@@ -77,7 +85,8 @@ class AnuncioViewModel(application: Application) : AndroidViewModel(application)
                     fechaInicio = anuncio.fechaInicio,
                     fechaFin = anuncio.fechaFin,
                     esFavorito = nuevosMatchIds.contains(anuncioId),
-                    creador = anuncio.creador
+                    creador = anuncio.creador,
+                    imagenes = anuncio.imagenes
                 )
                 repository.actualizarAnuncio(actualizado)
 
@@ -121,7 +130,8 @@ class AnuncioViewModel(application: Application) : AndroidViewModel(application)
                             fechaInicio = doc.getString("fechaInicio") ?: "",
                             fechaFin = doc.getString("fechaFin") ?: "",
                             esFavorito = matchIds.contains(anuncioId),
-                            creador = doc.getString("creador") ?: ""
+                            creador = doc.getString("creador") ?: "",
+                            imagenes = doc.get("imagenes") as? List<String> ?: listOf()
                         )
                     } catch (e: Exception) {
                         null
@@ -137,7 +147,7 @@ class AnuncioViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    private fun guardarAnuncioEnFirebase(anuncio: AnuncioEntity) {
+    private fun guardarAnuncioEnFirebase(anuncio: AnuncioEntity, context: Context) {
         val auth = FirebaseAuth.getInstance()
         val userUid = auth.currentUser?.uid ?: return
         val db = FirebaseFirestore.getInstance()
@@ -145,17 +155,55 @@ class AnuncioViewModel(application: Application) : AndroidViewModel(application)
         db.collection("usuarios").document(userUid).get().addOnSuccessListener { document ->
             val userName = document.getString("nombre") ?: return@addOnSuccessListener
 
-            val anuncioMap = mapOf(
-                "titulo" to anuncio.titulo,
-                "descripcion" to anuncio.descripcion,
-                "fechaInicio" to anuncio.fechaInicio,
-                "fechaFin" to anuncio.fechaFin,
-                "creador" to userName
-            )
+            val uploadedImageUrls = mutableListOf<String>()
 
-            db.collection("anuncios").add(anuncioMap)
+            anuncio.imagenes.filterNotNull().forEachIndexed { index, imageUri ->
+                val uri = Uri.parse(imageUri)
+                val options = mapOf("public_id" to "anuncio_images/${anuncio.id}_$index")
+
+                MediaManager.get().upload(uri)
+                    .options(options)
+                    .callback(object : UploadCallback {
+                        override fun onStart(requestId: String) {
+                            Toast.makeText(context, "Subiendo imagen ${index + 1}...", Toast.LENGTH_SHORT).show()
+                        }
+
+                        override fun onProgress(requestId: String, bytes: Long, totalBytes: Long) {}
+
+                        override fun onSuccess(requestId: String, resultData: Map<*, *>) {
+                            val url = resultData["secure_url"] as String
+                            uploadedImageUrls.add(url)
+
+                            if (uploadedImageUrls.size == anuncio.imagenes.size) {
+                                val anuncioMap = mapOf(
+                                    "titulo" to anuncio.titulo,
+                                    "descripcion" to anuncio.descripcion,
+                                    "fechaInicio" to anuncio.fechaInicio,
+                                    "fechaFin" to anuncio.fechaFin,
+                                    "creador" to userName,
+                                    "imagenes" to uploadedImageUrls
+                                )
+
+                                db.collection("anuncios").add(anuncioMap)
+                                    .addOnSuccessListener {
+                                        Toast.makeText(context, "Anuncio guardado con imágenes", Toast.LENGTH_SHORT).show()
+                                    }
+                                    .addOnFailureListener { e ->
+                                        Toast.makeText(context, "Error al guardar anuncio: ${e.message}", Toast.LENGTH_SHORT).show()
+                                    }
+                            }
+                        }
+
+                        override fun onError(requestId: String, @SuppressLint("RestrictedApi") error: ErrorInfo) {
+                        }
+
+                        override fun onReschedule(requestId: String, @SuppressLint("RestrictedApi") error: ErrorInfo) {}
+                    })
+                    .dispatch()
+            }
         }.addOnFailureListener { exception ->
             Log.e("Firebase", "Error al obtener el nombre del usuario", exception)
         }
     }
+
 }

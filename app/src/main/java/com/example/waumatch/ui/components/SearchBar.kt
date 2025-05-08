@@ -60,19 +60,5 @@ fun SearchBar(
                 }
             )
         }
-
-        IconButton(
-            onClick = onFilterClick,
-            modifier = Modifier
-                .size(46.dp)
-                .background(Color.White, RoundedCornerShape(12.dp))
-        ) {
-            Icon(
-                imageVector = Icons.Default.AccountCircle,
-                contentDescription = "Ícono de filtro",
-                tint = Color(0xFF024873),
-                modifier = Modifier.size(24.dp)
-            )
-        }
     }
 }

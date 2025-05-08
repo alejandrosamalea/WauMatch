@@ -65,6 +65,7 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.runtime.livedata)
     implementation(libs.firebase.database.ktx)
+    implementation(libs.firebase.crashlytics.buildtools)
     kapt("androidx.room:room-compiler:2.7.0")
     implementation(libs.androidx.room.ktx)
     testImplementation(libs.junit)
@@ -79,4 +80,7 @@ dependencies {
     implementation(libs.firebase.storage)
     implementation("com.cloudinary:cloudinary-android:2.2.0")
     implementation ("com.squareup.okhttp3:okhttp:4.9.1")
+    implementation ("com.google.code.gson:gson:2.10.1")
+    implementation ("androidx.compose.material:material-icons-extended:<compose_version>")
+
 }
