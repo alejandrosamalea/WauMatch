@@ -45,10 +45,11 @@ import java.util.*
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
 import com.example.waumatch.MainActivity
 
 @Composable
-fun ProfileScreen(viewModel: ProfileManager = viewModel(factory = ProfileManagerFactory(LocalContext.current))) {
+fun ProfileScreen(navController: NavController, viewModel: ProfileManager = viewModel(factory = ProfileManagerFactory(LocalContext.current))) {
     val context = LocalContext.current
     val profileData by viewModel.getProfileData().observeAsState(ProfileManager.ProfileData())
 
@@ -163,7 +164,7 @@ fun ProfileScreen(viewModel: ProfileManager = viewModel(factory = ProfileManager
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 60.dp, bottom = 30.dp)
+                    .padding(top = 20.dp, bottom = 30.dp)
                     .clip(RoundedCornerShape(bottomStart = 30.dp, bottomEnd = 30.dp))
             ) {
                 TextButton(
@@ -291,17 +292,30 @@ fun ProfileScreen(viewModel: ProfileManager = viewModel(factory = ProfileManager
                             color = ComposeColor(0xFF1EB7D9)
                         )
                     }
-                    Row(
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 20.dp, vertical = 20.dp),
-                        horizontalArrangement = Arrangement.SpaceAround
+                            .padding(horizontal = 20.dp, vertical = 20.dp)
+                            .background(
+                                color = ComposeColor(0x1A1EB7D9),
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                            .padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        StatItem(number = "4.9", label = "Rating")
-                        StatItem(number = "127", label = "Cuidados")
-                        val (mesReg, anioReg) = fechaRegistro.split("/").map { it.toInt() }
-                        val totalMeses = (Calendar.getInstance().get(Calendar.YEAR) - anioReg) * 12 + (Calendar.getInstance().get(Calendar.MONTH) + 1 - mesReg)
-                        StatItem(number = if (totalMeses >= 12) (totalMeses / 12).toString() else totalMeses.toString(), label = if (totalMeses >= 12) if (totalMeses / 12 == 1) "Año" else "Años" else if (totalMeses == 1) "Mes" else "Meses")
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceAround
+                        ) {
+                            StatItem(number = "4.9", label = "Rating")
+                            StatItem(number = "127", label = "Cuidados")
+                            val (mesReg, anioReg) = fechaRegistro.split("/").map { it.toInt() }
+                            val totalMeses = (Calendar.getInstance().get(Calendar.YEAR) - anioReg) * 12 + (Calendar.getInstance().get(Calendar.MONTH) + 1 - mesReg)
+                            StatItem(
+                                number = if (totalMeses >= 12) (totalMeses / 12).toString() else totalMeses.toString(),
+                                label = if (totalMeses >= 12) if (totalMeses / 12 == 1) "Año" else "Años" else if (totalMeses == 1) "Mes" else "Meses"
+                            )
+                        }
                     }
                 }
             }
@@ -484,7 +498,8 @@ fun ProfileScreen(viewModel: ProfileManager = viewModel(factory = ProfileManager
                         reviewerImageUrl = "https://api.a0.dev/assets/image?text=happy%20person%20avatar&aspect=1:1",
                         reviewerName = "Carlos P.",
                         rating = 5,
-                        reviewText = "Excelente cuidadora. Mi perro regresó muy feliz y bien cuidado."
+                        reviewText = "Excelente cuidadora. Mi perro regresó muy feliz y bien cuidado.",
+                        onClick = { navController.navigate("foreignProfile/YbU16ra15zUjGpfphe9PysK2duA3") }
                     )
                 }
             }
@@ -662,9 +677,18 @@ fun AvailabilityItem(
 }
 
 @Composable
-fun Review(reviewerImageUrl: String, reviewerName: String, rating: Int, reviewText: String) {
+fun Review(
+    reviewerImageUrl: String,
+    reviewerName: String,
+    rating: Int,
+    reviewText: String,
+    onClick: () -> Unit
+) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .padding(8.dp),
         verticalAlignment = Alignment.Top
     ) {
         Image(

@@ -16,5 +16,6 @@ sealed class NavigationItem(
     object Login : NavigationItem("login", R.drawable.profile, "Login")
     object Registrar : NavigationItem("registrar", R.drawable.profile, "Registrar")
     object Recuperar : NavigationItem("recuperar", R.drawable.profile, "Recuperar")
-    object ForeignProfile : NavigationItem("foreignProfile", R.drawable.profile, "ForeignProfile")
+    object ForeignProfile : NavigationItem("foreignProfile/{userId}", R.drawable.profile, "ForeignProfile")
+
 }

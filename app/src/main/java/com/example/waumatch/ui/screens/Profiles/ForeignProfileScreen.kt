@@ -29,9 +29,10 @@ import com.example.waumatch.ui.theme.OceanBlue
 import com.example.waumatch.ui.theme.SkyBlue
 import com.google.firebase.firestore.FirebaseFirestore
 import java.util.*
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 
 @Composable
-fun ForeignProfileScreen(userId: String) {
+fun ForeignProfileScreen(userId: String, onBackClick: () -> Unit) {
     val context = LocalContext.current
     var nombre by remember { mutableStateOf("Sin nombre") }
     var fechaRegistro by remember { mutableStateOf("01/2025") }
@@ -107,6 +108,27 @@ fun ForeignProfileScreen(userId: String) {
             }
     }
 
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 10.dp, bottom = 30.dp)
+            .clip(RoundedCornerShape(bottomStart = 30.dp, bottomEnd = 30.dp))
+    ) {
+        IconButton(
+            onClick = onBackClick,
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(top = 16.dp, end = 16.dp)
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "Volver",
+                tint = ComposeColor.White
+            )
+        }
+    }
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -120,9 +142,22 @@ fun ForeignProfileScreen(userId: String) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 60.dp, bottom = 30.dp)
+                    .padding(top = 20.dp, bottom = 30.dp)
                     .clip(RoundedCornerShape(bottomStart = 30.dp, bottomEnd = 30.dp))
             ) {
+                IconButton(
+                    onClick = onBackClick,
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(top = 16.dp, end = 16.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Volver",
+                        tint = ComposeColor.White
+                    )
+                }
+
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -151,17 +186,30 @@ fun ForeignProfileScreen(userId: String) {
                         fontSize = 16.sp,
                         color = ComposeColor(0xFF1EB7D9)
                     )
-                    Row(
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 20.dp, vertical = 20.dp),
-                        horizontalArrangement = Arrangement.SpaceAround
+                            .padding(horizontal = 20.dp, vertical = 20.dp)
+                            .background(
+                                color = ComposeColor(0x1A1EB7D9),
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                            .padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        StatItem(number = "4.9", label = "Rating")
-                        StatItem(number = "127", label = "Cuidados")
-                        val (mesReg, anioReg) = fechaRegistro.split("/").map { it.toInt() }
-                        val totalMeses = (Calendar.getInstance().get(Calendar.YEAR) - anioReg) * 12 + (Calendar.getInstance().get(Calendar.MONTH) + 1 - mesReg)
-                        StatItem(number = if (totalMeses >= 12) (totalMeses / 12).toString() else totalMeses.toString(), label = if (totalMeses >= 12) if (totalMeses / 12 == 1) "Año" else "Años" else if (totalMeses == 1) "Mes" else "Meses")
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceAround
+                        ) {
+                            StatItem(number = "4.9", label = "Rating")
+                            StatItem(number = "127", label = "Cuidados")
+                            val (mesReg, anioReg) = fechaRegistro.split("/").map { it.toInt() }
+                            val totalMeses = (Calendar.getInstance().get(Calendar.YEAR) - anioReg) * 12 + (Calendar.getInstance().get(Calendar.MONTH) + 1 - mesReg)
+                            StatItem(
+                                number = if (totalMeses >= 12) (totalMeses / 12).toString() else totalMeses.toString(),
+                                label = if (totalMeses >= 12) if (totalMeses / 12 == 1) "Año" else "Años" else if (totalMeses == 1) "Mes" else "Meses"
+                            )
+                        }
                     }
                 }
             }
@@ -267,7 +315,8 @@ fun ForeignProfileScreen(userId: String) {
                         reviewerImageUrl = "https://api.a0.dev/assets/image?text=happy%20person%20avatar&aspect=1:1",
                         reviewerName = "Carlos P.",
                         rating = 5,
-                        reviewText = "Excelente cuidadora. Mi perro regresó muy feliz y bien cuidado."
+                        reviewText = "Excelente cuidadora. Mi perro regresó muy feliz y bien cuidado.",
+                        onClick = {  }
                     )
                 }
             }

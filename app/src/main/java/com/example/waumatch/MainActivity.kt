@@ -45,7 +45,9 @@ class MainActivity : ComponentActivity() {
                 }
                 Scaffold(
                     bottomBar = {
-                        if (selectedDestination != NavigationItem.Login.route && selectedDestination != NavigationItem.Registrar.route && selectedDestination != NavigationItem.Recuperar.route && selectedDestination != NavigationItem.Add.route) {
+                        if (selectedDestination != NavigationItem.Login.route && selectedDestination != NavigationItem.Registrar.route && selectedDestination != NavigationItem.Recuperar.route
+                            && selectedDestination != NavigationItem.Add.route && selectedDestination != NavigationItem.ForeignProfile.route)
+                        {
                             MainNavigationBar(navController)
                         }
                     }
@@ -59,7 +61,7 @@ class MainActivity : ComponentActivity() {
                         composable(NavigationItem.Chat.route) { ChatScreen() }
                         composable(NavigationItem.Add.route) { AddScreen(navController) }
                         composable(NavigationItem.Favorites.route) { FavoritesScreen(navController) }
-                        composable(NavigationItem.Profile.route) { ProfileScreen() }
+                        composable(NavigationItem.Profile.route) { ProfileScreen(navController) }
                         composable(NavigationItem.Login.route) { LoginScreen(navController) }
                         composable(NavigationItem.Registrar.route) { RegisterScreen(navController) }
                         composable(NavigationItem.Recuperar.route) { RecuperarScreen(navController) }
@@ -68,7 +70,8 @@ class MainActivity : ComponentActivity() {
                             val currentUser = FirebaseAuth.getInstance().currentUser
                             if (currentUser != null) {
                                 ForeignProfileScreen(
-                                    userId = userId?.takeIf { it != "{userId}" && it.isNotEmpty() } ?: currentUser.uid
+                                    userId = userId?.takeIf { it != "{userId}" && it.isNotEmpty() } ?: currentUser.uid,
+                                    onBackClick = { navController.popBackStack() }
                                 )
                             } else {
                                 navController.navigate(NavigationItem.Login.route) {
