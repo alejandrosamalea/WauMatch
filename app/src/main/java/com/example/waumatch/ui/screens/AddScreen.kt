@@ -2,6 +2,7 @@ package com.example.waumatch.ui.screens
 
 import android.app.Application
 import android.app.DatePickerDialog
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -53,6 +54,7 @@ fun AddScreen(navController: NavController) {
     var fechaInicio by remember { mutableStateOf("") }
     var fechaFin by remember { mutableStateOf("") }
     var creador by remember { mutableStateOf("") }
+    var idCreador by remember { mutableStateOf("") }
     var showStartPicker by remember { mutableStateOf(false) }
     var showEndPicker by remember { mutableStateOf(false) }
     val MAX_TITULO = 10
@@ -90,7 +92,10 @@ fun AddScreen(navController: NavController) {
             try {
                 val userDocument = userRef.get().await()
                 val nombreUsuario = userDocument.getString("nombre") ?: "Usuario Anónimo"
+                idCreador = userId
+                Log.d("NAVEGACION", "id Creador: ${idCreador}")
                 creador = nombreUsuario
+                Log.d("NAVEGACION", "Nombre Creador: ${creador}")
             } catch (e: Exception) {
                 creador = "Usuario Anónimo"
             }
@@ -330,6 +335,7 @@ fun AddScreen(navController: NavController) {
                         fechaInicio = fechaInicio,
                         fechaFin = fechaFin,
                         creador = creador,
+                        idCreador = idCreador,
                         esFavorito = false,
                         imagenes = imageUris.filterNotNull()
                     )

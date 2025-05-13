@@ -13,6 +13,7 @@ data class AnuncioEntity(
     val fechaFin: String,
     val esFavorito: Boolean = false,
     val creador: String,
+    val idCreador: String,
     val imagenes: List<String>
 )
 

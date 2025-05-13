@@ -17,6 +17,7 @@ import com.example.waumatch.data.local.AnuncioEntity
 import com.example.waumatch.data.local.AppDatabase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -39,6 +40,7 @@ class AnuncioViewModel(application: Application) : AndroidViewModel(application)
                     fechaInicio = entity.fechaInicio,
                     fechaFin = entity.fechaFin,
                     creador = entity.creador,
+                    idCreador = entity.idCreador,
                     esFavorito = entity.esFavorito,
                     imagenes = entity.imagenes
                 )
@@ -86,6 +88,7 @@ class AnuncioViewModel(application: Application) : AndroidViewModel(application)
                     fechaFin = anuncio.fechaFin,
                     esFavorito = nuevosMatchIds.contains(anuncioId),
                     creador = anuncio.creador,
+                    idCreador = anuncio.idCreador,
                     imagenes = anuncio.imagenes
                 )
                 repository.actualizarAnuncio(actualizado)
@@ -131,6 +134,8 @@ class AnuncioViewModel(application: Application) : AndroidViewModel(application)
                             fechaFin = doc.getString("fechaFin") ?: "",
                             esFavorito = matchIds.contains(anuncioId),
                             creador = doc.getString("creador") ?: "",
+                            idCreador = doc.getString("idCreador") ?: "",
+
                             imagenes = doc.get("imagenes") as? List<String> ?: listOf()
                         )
                     } catch (e: Exception) {
@@ -181,6 +186,7 @@ class AnuncioViewModel(application: Application) : AndroidViewModel(application)
                                     "fechaInicio" to anuncio.fechaInicio,
                                     "fechaFin" to anuncio.fechaFin,
                                     "creador" to userName,
+                                    "idCreador" to anuncio.idCreador,
                                     "imagenes" to uploadedImageUrls
                                 )
 
@@ -204,6 +210,9 @@ class AnuncioViewModel(application: Application) : AndroidViewModel(application)
         }.addOnFailureListener { exception ->
             Log.e("Firebase", "Error al obtener el nombre del usuario", exception)
         }
+    }
+    fun getAnuncioById(id: String): Flow<AnuncioEntity?> {
+        return anuncios.map { list -> list.find { it.id == id } }
     }
 
 }

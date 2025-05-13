@@ -9,10 +9,12 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.example.waumatch.auth.LoginScreen
 import com.example.waumatch.auth.RegisterScreen
 import com.example.waumatch.ui.navigation.MainNavigationBar
@@ -46,7 +48,7 @@ class MainActivity : ComponentActivity() {
                 Scaffold(
                     bottomBar = {
                         if (selectedDestination != NavigationItem.Login.route && selectedDestination != NavigationItem.Registrar.route && selectedDestination != NavigationItem.Recuperar.route
-                            && selectedDestination != NavigationItem.Add.route && selectedDestination != NavigationItem.ForeignProfile.route)
+                            && selectedDestination != NavigationItem.Add.route && selectedDestination != NavigationItem.ForeignProfile.route && selectedDestination != NavigationItem.AnuncioDetallado.route)
                         {
                             MainNavigationBar(navController)
                         }
@@ -78,6 +80,13 @@ class MainActivity : ComponentActivity() {
                                     popUpTo(navController.graph.startDestinationId) { inclusive = true }
                                 }
                             }
+                        }
+                        composable(
+                            NavigationItem.AnuncioDetallado.route,
+
+                        ) { backStackEntry ->
+                            val anuncioId = backStackEntry.arguments?.getString("anuncioId") ?: ""
+                            AnuncioDetalladoScreen(navController = navController, anuncioId = anuncioId, onBackClick = { navController.popBackStack() })
                         }
                     }
                 }
