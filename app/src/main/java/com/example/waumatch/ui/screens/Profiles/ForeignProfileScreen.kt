@@ -70,6 +70,13 @@ fun ForeignProfileScreen(userId: String, onBackClick: () -> Unit) {
     // Estado para controlar el modo edición
     var isEditingReview by remember { mutableStateOf(false) }
 
+    val averageRating = if (reviews.isNotEmpty()) {
+        String.format("%.1f", reviews.map { it.rating }.average())
+    } else {
+        "0.0"
+    }
+    val reviewCount = reviews.size
+
     val db = FirebaseFirestore.getInstance()
     val authUser = FirebaseAuth.getInstance().currentUser
 
@@ -396,7 +403,34 @@ fun ForeignProfileScreen(userId: String, onBackClick: () -> Unit) {
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceAround
                         ) {
-                            StatItem(number = "4.9", label = "Rating")
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    Text(
+                                        text = averageRating,
+                                        fontSize = 20.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = ComposeColor(0xFF2EDFF2)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Icon(
+                                        imageVector = Icons.Default.Star,
+                                        contentDescription = "Average Rating Star",
+                                        tint = ComposeColor(0xFFFFD700),
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                                Text(
+                                    text = if (reviewCount == 1) "$reviewCount reseña" else "$reviewCount reseñas",
+                                    fontSize = 14.sp,
+                                    color = ComposeColor.White,
+                                    modifier = Modifier.padding(top = 5.dp)
+                                )
+                            }
                             StatItem(number = "127", label = "Cuidados")
                             val (mesReg, anioReg) = fechaRegistro.split("/").map { it.toInt() }
                             val totalMeses = (Calendar.getInstance().get(Calendar.YEAR) - anioReg) * 12 + (Calendar.getInstance().get(Calendar.MONTH) + 1 - mesReg)
@@ -774,3 +808,4 @@ fun loadTopReviews(userId: String, onResult: (List<ReviewData>) -> Unit) {
         onResult(emptyList())
     }
 }
+
