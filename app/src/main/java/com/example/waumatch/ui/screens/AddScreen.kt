@@ -57,9 +57,10 @@ fun AddScreen(navController: NavController) {
     var idCreador by remember { mutableStateOf("") }
     var showStartPicker by remember { mutableStateOf(false) }
     var showEndPicker by remember { mutableStateOf(false) }
-    val MAX_TITULO = 10
+    val MAX_TITULO = 30
     val MAX_DESCRIPCION = 250
     val imageUris = remember { mutableStateListOf<String?>(null, null, null) }
+
     val db = FirebaseFirestore.getInstance()
     val auth = FirebaseAuth.getInstance()
     val currentUser = auth.currentUser

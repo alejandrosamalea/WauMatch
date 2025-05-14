@@ -2,6 +2,7 @@ package com.example.waumatch.ui.screens.Profiles
 
 import android.app.TimePickerDialog
 import android.content.Intent
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -26,7 +27,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Color as ComposeColor
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -73,6 +73,7 @@ fun ProfileScreen(navController: NavController, viewModel: ProfileManager = view
     var localProfileImage by remember { mutableStateOf<String?>(null) }
     var tags by remember { mutableStateOf(listOf("♥️ Amante de los animales")) }
     var newTag by remember { mutableStateOf("") }
+    var reviews by remember { mutableStateOf(listOf<ReviewData>()) } // Estado para reseñas
     val isEditing by viewModel.getIsEditing().observeAsState(false)
 
     val MAX_NAME_LENGTH = 15
@@ -86,6 +87,7 @@ fun ProfileScreen(navController: NavController, viewModel: ProfileManager = view
     val auth = FirebaseAuth.getInstance()
     val currentUser = auth.currentUser
 
+    // Cargar datos del perfil
     if (currentUser != null) {
         LaunchedEffect(currentUser.uid) {
             val usuario = db.collection("usuarios").document(currentUser.uid)
@@ -137,6 +139,13 @@ fun ProfileScreen(navController: NavController, viewModel: ProfileManager = view
                     println("Error al cargar datos: ${exception.message}")
                 }
         }
+
+        // Cargar reseñas
+        LaunchedEffect(currentUser.uid) {
+            loadTopReviews(currentUser.uid) { fetchedReviews ->
+                reviews = fetchedReviews
+            }
+        }
     }
 
     val pickImageLauncher = rememberLauncherForActivityResult(
@@ -176,7 +185,7 @@ fun ProfileScreen(navController: NavController, viewModel: ProfileManager = view
                         context.startActivity(intent)
                     }
                 ) {
-                    Text(text = "Cerrar sesión", color = Color(0xFF2EDFF2))
+                    Text(text = "Cerrar sesión", color = ComposeColor(0xFF2EDFF2))
                 }
                 IconButton(
                     onClick = {
@@ -494,13 +503,28 @@ fun ProfileScreen(navController: NavController, viewModel: ProfileManager = view
                         .background(ComposeColor(0x1A1EB7D9), RoundedCornerShape(12.dp))
                         .padding(15.dp)
                 ) {
-                    Review(
-                        reviewerImageUrl = "https://api.a0.dev/assets/image?text=happy%20person%20avatar&aspect=1:1",
-                        reviewerName = "Carlos P.",
-                        rating = 5,
-                        reviewText = "Excelente cuidadora. Mi perro regresó muy feliz y bien cuidado.",
-                        onClick = { navController.navigate("foreignProfile/YbU16ra15zUjGpfphe9PysK2duA3") }
-                    )
+                    if (reviews.isEmpty()) {
+                        Text(
+                            text = "Aún no tienes reseñas",
+                            fontSize = 14.sp,
+                            color = ComposeColor.White,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(8.dp),
+                            textAlign = TextAlign.Center
+                        )
+                    } else {
+                        reviews.forEach { review ->
+                            Review(
+                                reviewerImageUrl = review.emisorFoto,
+                                reviewerName = review.nombre,
+                                rating = review.rating,
+                                reviewText = review.comment,
+                                onClick = { navController.navigate("foreignProfile/${review.idEmisor}") }
+                            )
+                            Spacer(modifier = Modifier.height(10.dp))
+                        }
+                    }
                 }
             }
         }

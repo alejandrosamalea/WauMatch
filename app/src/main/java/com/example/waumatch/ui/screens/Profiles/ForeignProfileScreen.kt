@@ -1,5 +1,8 @@
 package com.example.waumatch.ui.screens.Profiles
 
+import android.content.Context
+import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -10,7 +13,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,13 +30,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.room.ForeignKey
 import coil.compose.rememberAsyncImagePainter
 import com.example.waumatch.ui.theme.OceanBlue
 import com.example.waumatch.ui.theme.SkyBlue
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import java.text.SimpleDateFormat
 import java.util.*
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 
 @Composable
 fun ForeignProfileScreen(userId: String, onBackClick: () -> Unit) {
@@ -54,8 +61,19 @@ fun ForeignProfileScreen(userId: String, onBackClick: () -> Unit) {
     var profileImage by remember { mutableStateOf("https://via.placeholder.com/150") }
     var tags by remember { mutableStateOf(listOf("♥️ Amante de los animales")) }
 
-    val db = FirebaseFirestore.getInstance()
+    // Estados para la reseña
+    var rating by remember { mutableStateOf(0) }
+    var reviewText by remember { mutableStateOf("") }
+    var reviews by remember { mutableStateOf(listOf<ReviewData>()) }
+    // Estado para la reseña del usuario actual
+    var userReview by remember { mutableStateOf<ReviewData?>(null) }
+    // Estado para controlar el modo edición
+    var isEditingReview by remember { mutableStateOf(false) }
 
+    val db = FirebaseFirestore.getInstance()
+    val authUser = FirebaseAuth.getInstance().currentUser
+
+    // Cargar datos del perfil
     LaunchedEffect(userId) {
         val usuario = db.collection("usuarios").document(userId)
         usuario.get()
@@ -108,25 +126,202 @@ fun ForeignProfileScreen(userId: String, onBackClick: () -> Unit) {
             }
     }
 
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 10.dp, bottom = 30.dp)
-            .clip(RoundedCornerShape(bottomStart = 30.dp, bottomEnd = 30.dp))
-    ) {
-        IconButton(
-            onClick = onBackClick,
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(top = 16.dp, end = 16.dp)
-        ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Volver",
-                tint = ComposeColor.White
-            )
+    // Cargar reseñas
+    LaunchedEffect(userId) {
+        loadTopReviews(userId) { fetchedReviews ->
+            reviews = fetchedReviews
         }
+    }
+
+    // Verificar si el usuario actual ya dejó una reseña
+    LaunchedEffect(userId, authUser?.uid) {
+        if (authUser != null) {
+            db.collection("reseñas")
+                .whereEqualTo("idEmisor", authUser.uid)
+                .whereEqualTo("idReceptor", userId)
+                .get()
+                .addOnSuccessListener { querySnapshot ->
+                    if (!querySnapshot.isEmpty) {
+                        val reviewDoc = querySnapshot.documents.first()
+                        userReview = ReviewData(
+                            rating = reviewDoc.getLong("rating")?.toInt() ?: 0,
+                            comment = reviewDoc.getString("comment") ?: "",
+                            idEmisor = reviewDoc.getString("idEmisor") ?: "",
+                            nombre = reviewDoc.getString("nombre") ?: "Anónimo",
+                            emisorFoto = reviewDoc.getString("emisorFoto") ?: "",
+                            fechaCreacion = reviewDoc.getString("fechaCreacion") ?: "",
+                            idReceptor = reviewDoc.getString("idReceptor") ?: ""
+                        )
+                    }
+                }
+                .addOnFailureListener { e ->
+                    Log.e("Firestore", "Error al verificar reseña del usuario: ${e.message}")
+                }
+        }
+    }
+
+    // Precargar valores al entrar en modo edición
+    LaunchedEffect(isEditingReview, userReview) {
+        if (isEditingReview && userReview != null) {
+            rating = userReview!!.rating
+            reviewText = userReview!!.comment
+        }
+    }
+
+    fun handleSubmitReview(bd: FirebaseFirestore, userId: String, context: Context) {
+        val emisorId = authUser?.uid ?: return
+
+        if (rating == 0) {
+            Toast.makeText(context, "Por favor selecciona una calificación", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        if (reviewText.trim().isEmpty()) {
+            Toast.makeText(context, "Por favor escribe un comentario", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        // Verificar si ya existe una reseña
+        bd.collection("reseñas")
+            .whereEqualTo("idEmisor", emisorId)
+            .whereEqualTo("idReceptor", userId)
+            .get()
+            .addOnSuccessListener { querySnapshot ->
+                if (!querySnapshot.isEmpty) {
+                    Toast.makeText(context, "Ya has dejado una reseña para este usuario", Toast.LENGTH_SHORT).show()
+                    return@addOnSuccessListener
+                }
+
+                // Obtener datos del emisor
+                bd.collection("usuarios").document(emisorId).get()
+                    .addOnSuccessListener { document ->
+                        val nombre = document.getString("nombre") ?: "Anónimo"
+                        val fotoPerfil = document.getString("profileImage") ?: ""
+
+                        val newReview = ReviewData(
+                            rating = rating,
+                            comment = reviewText,
+                            idEmisor = emisorId,
+                            nombre = nombre,
+                            emisorFoto = fotoPerfil,
+                            fechaCreacion = SimpleDateFormat("MM/yyyy", Locale.getDefault()).format(Date()),
+                            idReceptor = userId
+                        )
+
+                        // Guardar reseña
+                        bd.collection("reseñas").add(newReview)
+                            .addOnSuccessListener {
+                                Toast.makeText(context, "¡Reseña enviada con éxito!", Toast.LENGTH_SHORT).show()
+                                // Actualizar estado local
+                                userReview = newReview
+                                reviews = listOf(newReview) + reviews
+                                rating = 0
+                                reviewText = ""
+                            }
+                            .addOnFailureListener { e ->
+                                Log.e("Firestore", "Error al guardar la reseña: ${e.message}")
+                                Toast.makeText(context, "Error al enviar la reseña", Toast.LENGTH_SHORT).show()
+                            }
+                    }
+                    .addOnFailureListener {
+                        Toast.makeText(context, "No se pudo obtener el usuario", Toast.LENGTH_SHORT).show()
+                    }
+            }
+            .addOnFailureListener { e ->
+                Log.e("Firestore", "Error al verificar existencia de reseña: ${e.message}")
+                Toast.makeText(context, "Error al verificar reseña existente", Toast.LENGTH_SHORT).show()
+            }
+    }
+
+    fun handleUpdateReview(bd: FirebaseFirestore, userId: String, context: Context) {
+        val emisorId = authUser?.uid ?: return
+
+        if (rating == 0) {
+            Toast.makeText(context, "Por favor selecciona una calificación", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        if (reviewText.trim().isEmpty()) {
+            Toast.makeText(context, "Por favor escribe un comentario", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        // Buscar la reseña existente
+        bd.collection("reseñas")
+            .whereEqualTo("idEmisor", emisorId)
+            .whereEqualTo("idReceptor", userId)
+            .get()
+            .addOnSuccessListener { querySnapshot ->
+                if (querySnapshot.isEmpty) {
+                    Toast.makeText(context, "No se encontró la reseña", Toast.LENGTH_SHORT).show()
+                    return@addOnSuccessListener
+                }
+
+                val reviewDoc = querySnapshot.documents.first()
+                val updatedReview = ReviewData(
+                    rating = rating,
+                    comment = reviewText,
+                    idEmisor = emisorId,
+                    nombre = userReview?.nombre ?: "Anónimo",
+                    emisorFoto = userReview?.emisorFoto ?: "",
+                    fechaCreacion = userReview?.fechaCreacion ?: SimpleDateFormat("MM/yyyy", Locale.getDefault()).format(Date()),
+                    idReceptor = userId
+                )
+
+                // Actualizar reseña en Firestore
+                reviewDoc.reference.set(updatedReview)
+                    .addOnSuccessListener {
+                        Toast.makeText(context, "¡Reseña actualizada con éxito!", Toast.LENGTH_SHORT).show()
+                        // Actualizar estado local
+                        userReview = updatedReview
+                        reviews = reviews.map { if (it.idEmisor == emisorId) updatedReview else it }
+                        isEditingReview = false
+                        rating = 0
+                        reviewText = ""
+                    }
+                    .addOnFailureListener { e ->
+                        Log.e("Firestore", "Error al actualizar la reseña: ${e.message}")
+                        Toast.makeText(context, "Error al actualizar la reseña", Toast.LENGTH_SHORT).show()
+                    }
+            }
+            .addOnFailureListener { e ->
+                Log.e("Firestore", "Error al buscar la reseña: ${e.message}")
+                Toast.makeText(context, "Error al buscar la reseña", Toast.LENGTH_SHORT).show()
+            }
+    }
+
+    fun handleDeleteReview(bd: FirebaseFirestore, userId: String, context: Context) {
+        val emisorId = authUser?.uid ?: return
+
+        // Buscar y eliminar la reseña
+        bd.collection("reseñas")
+            .whereEqualTo("idEmisor", emisorId)
+            .whereEqualTo("idReceptor", userId)
+            .get()
+            .addOnSuccessListener { querySnapshot ->
+                if (querySnapshot.isEmpty) {
+                    Toast.makeText(context, "No se encontró la reseña", Toast.LENGTH_SHORT).show()
+                    return@addOnSuccessListener
+                }
+
+                val reviewDoc = querySnapshot.documents.first()
+                reviewDoc.reference.delete()
+                    .addOnSuccessListener {
+                        Toast.makeText(context, "¡Reseña eliminada con éxito!", Toast.LENGTH_SHORT).show()
+                        // Actualizar estado local
+                        userReview = null
+                        reviews = reviews.filter { it.idEmisor != emisorId }
+                        isEditingReview = false
+                    }
+                    .addOnFailureListener { e ->
+                        Log.e("Firestore", "Error al eliminar la reseña: ${e.message}")
+                        Toast.makeText(context, "Error al eliminar la reseña", Toast.LENGTH_SHORT).show()
+                    }
+            }
+            .addOnFailureListener { e ->
+                Log.e("Firestore", "Error al buscar la reseña: ${e.message}")
+                Toast.makeText(context, "Error al buscar la reseña", Toast.LENGTH_SHORT).show()
+            }
     }
 
     LazyColumn(
@@ -166,7 +361,7 @@ fun ForeignProfileScreen(userId: String, onBackClick: () -> Unit) {
                 ) {
                     Image(
                         painter = rememberAsyncImagePainter(profileImage),
-                        contentDescription = "Profile Image",
+                        contentDescription = "Imagen de perfil",
                         modifier = Modifier
                             .size(120.dp)
                             .clip(CircleShape)
@@ -299,6 +494,191 @@ fun ForeignProfileScreen(userId: String, onBackClick: () -> Unit) {
                     .padding(20.dp)
             ) {
                 Text(
+                    text = if (userReview != null && !isEditingReview) "Tu Reseña" else if (isEditingReview) "Editar Reseña" else "Dejar una Reseña",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = ComposeColor.White,
+                    modifier = Modifier.padding(bottom = 15.dp)
+                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(ComposeColor(0x1A1EB7D9), RoundedCornerShape(12.dp))
+                        .padding(15.dp)
+                ) {
+                    if (userReview != null && !isEditingReview) {
+                        // Mostrar la reseña del usuario en grande
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .border(2.dp, ComposeColor(0xFF2EDFF2), RoundedCornerShape(8.dp))
+                                .padding(15.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    (1..5).forEach { star ->
+                                        Icon(
+                                            imageVector = if (star <= userReview!!.rating) Icons.Filled.Star else Icons.Outlined.StarBorder,
+                                            contentDescription = "Estrella $star",
+                                            tint = if (star <= userReview!!.rating) ComposeColor(0xFFFFD700) else ComposeColor(0xFFCCCCCC),
+                                            modifier = Modifier.size(36.dp)
+                                        )
+                                    }
+                                }
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    IconButton(
+                                        onClick = { isEditingReview = true },
+                                        modifier = Modifier.size(32.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Edit,
+                                            contentDescription = "Editar reseña",
+                                            tint = ComposeColor(0xFF2EDFF2),
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                    IconButton(
+                                        onClick = { handleDeleteReview(db, userId, context) },
+                                        modifier = Modifier.size(32.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Delete,
+                                            contentDescription = "Eliminar reseña",
+                                            tint = ComposeColor(0xFFFF4444),
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Text(
+                                text = userReview!!.comment,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = ComposeColor.White,
+                                lineHeight = 26.sp
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "Enviado: ${userReview!!.fechaCreacion}",
+                                fontSize = 14.sp,
+                                color = ComposeColor(0xFFCCCCCC)
+                            )
+                        }
+                    } else {
+                        // Formulario para dejar o editar una reseña
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 10.dp),
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            (1..5).forEach { star ->
+                                IconButton(
+                                    onClick = { rating = star },
+                                    modifier = Modifier.size(36.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = if (star <= rating) Icons.Filled.Star else Icons.Outlined.StarBorder,
+                                        contentDescription = "Estrella $star",
+                                        tint = if (star <= rating) ComposeColor(0xFFFFD700) else ComposeColor(0xFFCCCCCC),
+                                        modifier = Modifier.size(30.dp)
+                                    )
+                                }
+                            }
+                        }
+                        TextField(
+                            value = reviewText,
+                            onValueChange = { reviewText = it },
+                            placeholder = { Text("Escribe tu reseña aquí...") },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(120.dp)
+                                .border(1.dp, ComposeColor(0xFFDDDDDD), RoundedCornerShape(8.dp))
+                                .background(ComposeColor.White, RoundedCornerShape(8.dp)),
+                            colors = TextFieldDefaults.colors(
+                                focusedContainerColor = ComposeColor.White,
+                                unfocusedContainerColor = ComposeColor.White,
+                                focusedIndicatorColor = ComposeColor.Transparent,
+                                unfocusedIndicatorColor = ComposeColor.Transparent
+                            ),
+                            textStyle = LocalTextStyle.current.copy(
+                                fontSize = 15.sp,
+                                color = ComposeColor.Black
+                            )
+                        )
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Button(
+                                onClick = {
+                                    if (isEditingReview) {
+                                        handleUpdateReview(db, userId, context)
+                                    } else {
+                                        handleSubmitReview(db, userId, context)
+                                    }
+                                },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(50.dp),
+                                shape = RoundedCornerShape(8.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = ComposeColor(0xFF2EDFF2),
+                                    contentColor = ComposeColor(0xFF111826)
+                                )
+                            ) {
+                                Text(
+                                    text = if (isEditingReview) "Guardar Cambios" else "Enviar Reseña",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                            if (isEditingReview) {
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Button(
+                                    onClick = {
+                                        isEditingReview = false
+                                        rating = 0
+                                        reviewText = ""
+                                    },
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(50.dp),
+                                    shape = RoundedCornerShape(8.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = ComposeColor(0xFFCCCCCC),
+                                        contentColor = ComposeColor(0xFF111826)
+                                    )
+                                ) {
+                                    Text(
+                                        text = "Cancelar",
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        item {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp)
+            ) {
+                Text(
                     text = "Últimas Reseñas",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
@@ -311,13 +691,16 @@ fun ForeignProfileScreen(userId: String, onBackClick: () -> Unit) {
                         .background(ComposeColor(0x1A1EB7D9), RoundedCornerShape(12.dp))
                         .padding(15.dp)
                 ) {
-                    Review(
-                        reviewerImageUrl = "https://api.a0.dev/assets/image?text=happy%20person%20avatar&aspect=1:1",
-                        reviewerName = "Carlos P.",
-                        rating = 5,
-                        reviewText = "Excelente cuidadora. Mi perro regresó muy feliz y bien cuidado.",
-                        onClick = {  }
-                    )
+                    reviews.forEach { review ->
+                        Review(
+                            reviewerImageUrl = review.emisorFoto,
+                            reviewerName = review.nombre,
+                            rating = review.rating,
+                            reviewText = review.comment,
+                            onClick = { /* acción si se necesita */ }
+                        )
+                        Spacer(modifier = Modifier.height(10.dp))
+                    }
                 }
             }
         }
@@ -343,3 +726,51 @@ fun ForeignProfileScreen(userId: String, onBackClick: () -> Unit) {
     }
 }
 
+data class ReviewData(
+    val rating: Int = 0,
+    val comment: String = "",
+    val idEmisor: String = "",
+    val nombre: String = "",
+    val emisorFoto: String = "",
+    val fechaCreacion: String = "",
+    val idReceptor: String = ""
+) {
+    constructor() : this(0, "", "", "", "", "")
+}
+
+fun loadTopReviews(userId: String, onResult: (List<ReviewData>) -> Unit) {
+    if (userId.isNotBlank()) {
+        FirebaseFirestore.getInstance()
+            .collection("reseñas")
+            .whereEqualTo("idReceptor", userId.trim())
+            .get()
+            .addOnSuccessListener { result ->
+                val fetchedReviews = result.mapNotNull { doc ->
+                    try {
+                        ReviewData(
+                            nombre = doc.getString("nombre") ?: "",
+                            comment = doc.getString("comment") ?: "",
+                            emisorFoto = doc.getString("emisorFoto") ?: "",
+                            rating = doc.getLong("rating")?.toInt() ?: 0,
+                            fechaCreacion = doc.getString("fechaCreacion") ?: "",
+                            idReceptor = doc.getString("idReceptor") ?: "",
+                            idEmisor = doc.getString("idEmisor") ?: ""
+                        )
+                    } catch (e: Exception) {
+                        Log.e("FirestoreParse", "Error al convertir documento: ${doc.id}", e)
+                        null
+                    }
+                }
+
+                Log.d("FirestoreResult", "Se obtuvieron ${fetchedReviews.size} reseñas")
+                onResult(fetchedReviews)
+            }
+            .addOnFailureListener { exception ->
+                Log.e("FirestoreError", "Error al obtener documentos", exception)
+                onResult(emptyList())
+            }
+    } else {
+        Log.e("FirestoreError", "userId es null o vacío")
+        onResult(emptyList())
+    }
+}
