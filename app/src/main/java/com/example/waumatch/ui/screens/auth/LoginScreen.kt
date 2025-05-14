@@ -1,5 +1,8 @@
 package com.example.waumatch.auth
 
+import android.app.Activity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -20,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -32,8 +36,12 @@ import coil.compose.rememberAsyncImagePainter
 import com.example.waumatch.R
 import com.example.waumatch.ui.navigation.NavigationItem
 import com.example.waumatch.ui.theme.WauMatchTheme
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.play.core.integrity.r
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.firestore.FirebaseFirestore
 
 @Composable
 fun LoginScreen(navController: NavController) {
@@ -42,6 +50,47 @@ fun LoginScreen(navController: NavController) {
     var showPassword by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
     val auth = FirebaseAuth.getInstance()
+    var db = FirebaseFirestore.getInstance()
+    val context = LocalContext.current
+    val activity = context as Activity
+
+
+    val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+        .requestIdToken("628045113293-sod1s86ki88pfnfmqs4l2svgq2v9k6gg.apps.googleusercontent.com")
+        .requestEmail()
+        .build()
+
+    val googleSignInClient = GoogleSignIn.getClient(context, gso)
+
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+        try {
+            val account = task.result
+            val credential = GoogleAuthProvider.getCredential(account.idToken, null)
+            auth.signInWithCredential(credential)
+                .addOnCompleteListener { authResult ->
+                    if (authResult.isSuccessful) {
+                        val user = auth.currentUser
+                        crearUsuarioBD(
+                            bd = db,
+                            email = user?.email ?: "",
+                            password = "",
+                            nombre = user?.displayName ?: "",
+                            direccion = "",
+                            auth = auth,
+                            telefono = ""
+                        )
+                        navController.navigate("home")
+                    } else {
+                        errorMessage = "Error al iniciar sesión con Google"
+                    }
+                }
+        } catch (e: Exception) {
+            errorMessage = "Error: ${e.message}"
+        }
+    }
 
     WauMatchTheme {
         Box(
@@ -220,6 +269,31 @@ fun LoginScreen(navController: NavController) {
                         fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
                     )
                 }
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Button(
+                    onClick = {
+                        val signInIntent = googleSignInClient.signInIntent
+                        launcher.launch(signInIntent)
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.White,
+                        contentColor = Color.Black
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.profile), // Usa un ícono de Google
+                        contentDescription = "Google Sign In",
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Iniciar sesion con Google")
+                }
+
 
                 Spacer(modifier = Modifier.height(24.dp))
 
