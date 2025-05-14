@@ -18,7 +18,6 @@ import java.util.List;
 import java.util.Map;
 
 public class ProfileManager extends ViewModel {
-    // Clase interna para Availability
     public static class Availability {
         private String weekdays;
         private String weekends;

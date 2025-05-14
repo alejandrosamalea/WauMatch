@@ -28,8 +28,10 @@ import androidx.compose.ui.graphics.Color as ComposeColor
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.waumatch.ui.theme.OceanBlue
 import com.example.waumatch.ui.theme.SkyBlue
@@ -39,7 +41,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 @Composable
-fun ForeignProfileScreen(userId: String, onBackClick: () -> Unit) {
+fun ForeignProfileScreen(userId: String, onBackClick: () -> Unit, navController: NavController) {
     val context = LocalContext.current
     var nombre by remember { mutableStateOf("Sin nombre") }
     var fechaRegistro by remember { mutableStateOf("01/2025") }
@@ -60,14 +62,10 @@ fun ForeignProfileScreen(userId: String, onBackClick: () -> Unit) {
     }
     var profileImage by remember { mutableStateOf("https://via.placeholder.com/150") }
     var tags by remember { mutableStateOf(listOf("♥️ Amante de los animales")) }
-
-    // Estados para la reseña
     var rating by remember { mutableStateOf(0) }
     var reviewText by remember { mutableStateOf("") }
     var reviews by remember { mutableStateOf(listOf<ReviewData>()) }
-    // Estado para la reseña del usuario actual
     var userReview by remember { mutableStateOf<ReviewData?>(null) }
-    // Estado para controlar el modo edición
     var isEditingReview by remember { mutableStateOf(false) }
 
     val averageRating = if (reviews.isNotEmpty()) {
@@ -77,10 +75,11 @@ fun ForeignProfileScreen(userId: String, onBackClick: () -> Unit) {
     }
     val reviewCount = reviews.size
 
-    val db = FirebaseFirestore.getInstance()
+    val
+
+            db = FirebaseFirestore.getInstance()
     val authUser = FirebaseAuth.getInstance().currentUser
 
-    // Cargar datos del perfil
     LaunchedEffect(userId) {
         val usuario = db.collection("usuarios").document(userId)
         usuario.get()
@@ -133,14 +132,12 @@ fun ForeignProfileScreen(userId: String, onBackClick: () -> Unit) {
             }
     }
 
-    // Cargar reseñas
     LaunchedEffect(userId) {
         loadTopReviews(userId) { fetchedReviews ->
             reviews = fetchedReviews
         }
     }
 
-    // Verificar si el usuario actual ya dejó una reseña
     LaunchedEffect(userId, authUser?.uid) {
         if (authUser != null) {
             db.collection("reseñas")
@@ -167,7 +164,6 @@ fun ForeignProfileScreen(userId: String, onBackClick: () -> Unit) {
         }
     }
 
-    // Precargar valores al entrar en modo edición
     LaunchedEffect(isEditingReview, userReview) {
         if (isEditingReview && userReview != null) {
             rating = userReview!!.rating
@@ -188,7 +184,6 @@ fun ForeignProfileScreen(userId: String, onBackClick: () -> Unit) {
             return
         }
 
-        // Verificar si ya existe una reseña
         bd.collection("reseñas")
             .whereEqualTo("idEmisor", emisorId)
             .whereEqualTo("idReceptor", userId)
@@ -199,7 +194,6 @@ fun ForeignProfileScreen(userId: String, onBackClick: () -> Unit) {
                     return@addOnSuccessListener
                 }
 
-                // Obtener datos del emisor
                 bd.collection("usuarios").document(emisorId).get()
                     .addOnSuccessListener { document ->
                         val nombre = document.getString("nombre") ?: "Anónimo"
@@ -215,11 +209,9 @@ fun ForeignProfileScreen(userId: String, onBackClick: () -> Unit) {
                             idReceptor = userId
                         )
 
-                        // Guardar reseña
                         bd.collection("reseñas").add(newReview)
                             .addOnSuccessListener {
                                 Toast.makeText(context, "¡Reseña enviada con éxito!", Toast.LENGTH_SHORT).show()
-                                // Actualizar estado local
                                 userReview = newReview
                                 reviews = listOf(newReview) + reviews
                                 rating = 0
@@ -253,7 +245,6 @@ fun ForeignProfileScreen(userId: String, onBackClick: () -> Unit) {
             return
         }
 
-        // Buscar la reseña existente
         bd.collection("reseñas")
             .whereEqualTo("idEmisor", emisorId)
             .whereEqualTo("idReceptor", userId)
@@ -275,11 +266,9 @@ fun ForeignProfileScreen(userId: String, onBackClick: () -> Unit) {
                     idReceptor = userId
                 )
 
-                // Actualizar reseña en Firestore
                 reviewDoc.reference.set(updatedReview)
                     .addOnSuccessListener {
                         Toast.makeText(context, "¡Reseña actualizada con éxito!", Toast.LENGTH_SHORT).show()
-                        // Actualizar estado local
                         userReview = updatedReview
                         reviews = reviews.map { if (it.idEmisor == emisorId) updatedReview else it }
                         isEditingReview = false
@@ -300,7 +289,6 @@ fun ForeignProfileScreen(userId: String, onBackClick: () -> Unit) {
     fun handleDeleteReview(bd: FirebaseFirestore, userId: String, context: Context) {
         val emisorId = authUser?.uid ?: return
 
-        // Buscar y eliminar la reseña
         bd.collection("reseñas")
             .whereEqualTo("idEmisor", emisorId)
             .whereEqualTo("idReceptor", userId)
@@ -315,7 +303,6 @@ fun ForeignProfileScreen(userId: String, onBackClick: () -> Unit) {
                 reviewDoc.reference.delete()
                     .addOnSuccessListener {
                         Toast.makeText(context, "¡Reseña eliminada con éxito!", Toast.LENGTH_SHORT).show()
-                        // Actualizar estado local
                         userReview = null
                         reviews = reviews.filter { it.idEmisor != emisorId }
                         isEditingReview = false
@@ -541,7 +528,6 @@ fun ForeignProfileScreen(userId: String, onBackClick: () -> Unit) {
                         .padding(15.dp)
                 ) {
                     if (userReview != null && !isEditingReview) {
-                        // Mostrar la reseña del usuario en grande
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -608,7 +594,6 @@ fun ForeignProfileScreen(userId: String, onBackClick: () -> Unit) {
                             )
                         }
                     } else {
-                        // Formulario para dejar o editar una reseña
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -725,15 +710,27 @@ fun ForeignProfileScreen(userId: String, onBackClick: () -> Unit) {
                         .background(ComposeColor(0x1A1EB7D9), RoundedCornerShape(12.dp))
                         .padding(15.dp)
                 ) {
-                    reviews.forEach { review ->
-                        Review(
-                            reviewerImageUrl = review.emisorFoto,
-                            reviewerName = review.nombre,
-                            rating = review.rating,
-                            reviewText = review.comment,
-                            onClick = { /* acción si se necesita */ }
+                    if (reviews.isEmpty()) {
+                        Text(
+                            text = "Sin reseñas",
+                            fontSize = 14.sp,
+                            color = ComposeColor.White,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(8.dp),
+                            textAlign = TextAlign.Center
                         )
-                        Spacer(modifier = Modifier.height(10.dp))
+                    } else {
+                        reviews.forEach { review ->
+                            Review(
+                                reviewerImageUrl = review.emisorFoto,
+                                reviewerName = review.nombre,
+                                rating = review.rating,
+                                reviewText = review.comment,
+                                onClick = { navController.navigate("foreignProfile/${review.idEmisor}") }
+                            )
+                            Spacer(modifier = Modifier.height(10.dp))
+                        }
                     }
                 }
             }
@@ -759,6 +756,7 @@ fun ForeignProfileScreen(userId: String, onBackClick: () -> Unit) {
         }
     }
 }
+
 
 data class ReviewData(
     val rating: Int = 0,
@@ -795,7 +793,6 @@ fun loadTopReviews(userId: String, onResult: (List<ReviewData>) -> Unit) {
                         null
                     }
                 }
-
                 Log.d("FirestoreResult", "Se obtuvieron ${fetchedReviews.size} reseñas")
                 onResult(fetchedReviews)
             }
@@ -808,4 +805,3 @@ fun loadTopReviews(userId: String, onResult: (List<ReviewData>) -> Unit) {
         onResult(emptyList())
     }
 }
-

@@ -67,13 +67,17 @@ class MainActivity : ComponentActivity() {
                         composable(NavigationItem.Login.route) { LoginScreen(navController) }
                         composable(NavigationItem.Registrar.route) { RegisterScreen(navController) }
                         composable(NavigationItem.Recuperar.route) { RecuperarScreen(navController) }
-                        composable(NavigationItem.ForeignProfile.route) { backStackEntry ->
+                        composable(
+                            route = NavigationItem.ForeignProfile.route,
+                            arguments = listOf(navArgument("userId") { type = NavType.StringType })
+                        ) { backStackEntry ->
                             val userId = backStackEntry.arguments?.getString("userId")
                             val currentUser = FirebaseAuth.getInstance().currentUser
                             if (currentUser != null) {
                                 ForeignProfileScreen(
                                     userId = userId?.takeIf { it != "{userId}" && it.isNotEmpty() } ?: currentUser.uid,
-                                    onBackClick = { navController.popBackStack() }
+                                    onBackClick = { navController.popBackStack() },
+                                    navController = navController
                                 )
                             } else {
                                 navController.navigate(NavigationItem.Login.route) {
