@@ -733,6 +733,23 @@ fun ForeignProfileScreen(userId: String, onBackClick: () -> Unit, navController:
                         }
                     }
                 }
+                // Add "Ver todas las reseñas" button
+                if (reviews.isNotEmpty()) {
+                    TextButton(
+                        onClick = {
+                            navController.navigate("allReviews/$userId")
+                        },
+                        modifier = Modifier
+                            .align(Alignment.Start)
+                            .padding(top = 10.dp)
+                    ) {
+                        Text(
+                            text = "Ver todas las reseñas",
+                            color = ComposeColor(0xFF2EDFF2),
+                            fontSize = 16.sp
+                        )
+                    }
+                }
             }
         }
         item {

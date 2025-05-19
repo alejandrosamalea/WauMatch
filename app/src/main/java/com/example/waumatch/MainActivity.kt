@@ -48,7 +48,8 @@ class MainActivity : ComponentActivity() {
                 Scaffold(
                     bottomBar = {
                         if (selectedDestination != NavigationItem.Login.route && selectedDestination != NavigationItem.Registrar.route && selectedDestination != NavigationItem.Recuperar.route
-                            && selectedDestination != NavigationItem.Add.route && selectedDestination != NavigationItem.ForeignProfile.route && selectedDestination != NavigationItem.AnuncioDetallado.route)
+                            && selectedDestination != NavigationItem.Add.route && selectedDestination != NavigationItem.ForeignProfile.route && selectedDestination != NavigationItem.AnuncioDetallado.route
+                            && selectedDestination != NavigationItem.allReviews.route)
                         {
                             MainNavigationBar(navController)
                         }
@@ -91,6 +92,18 @@ class MainActivity : ComponentActivity() {
                         ) { backStackEntry ->
                             val anuncioId = backStackEntry.arguments?.getString("anuncioId") ?: ""
                             AnuncioDetalladoScreen(navController = navController, anuncioId = anuncioId, onBackClick = { navController.popBackStack() })
+                        }
+
+                        composable(
+                            route = "allReviews/{userId}",
+                            arguments = listOf(navArgument("userId") { type = NavType.StringType })
+                        ) { backStackEntry ->
+                            val userId = backStackEntry.arguments?.getString("userId") ?: ""
+                            AllReviewsScreen(
+                                userId = userId,
+                                navController = navController,
+                                onBackClick = { navController.popBackStack() }
+                            )
                         }
                     }
                 }

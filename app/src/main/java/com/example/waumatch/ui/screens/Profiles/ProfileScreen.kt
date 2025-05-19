@@ -576,6 +576,22 @@ fun ProfileScreen(navController: NavController, viewModel: ProfileManager = view
                         }
                     }
                 }
+                // Add "Ver todas las reseñas" button
+                TextButton(
+                    onClick = {
+                        // Navigate to a screen that shows all reviews
+                        navController.navigate("allReviews/${currentUser?.uid}")
+                    },
+                    modifier = Modifier
+                        .align(Alignment.Start)
+                        .padding(top = 10.dp)
+                ) {
+                    Text(
+                        text = "Ver todas las reseñas",
+                        color = ComposeColor(0xFF2EDFF2),
+                        fontSize = 16.sp
+                    )
+                }
             }
         }
     }
