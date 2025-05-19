@@ -42,16 +42,6 @@ import com.google.type.DateTime
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import android.app.Activity
-import android.content.Intent
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.ui.platform.LocalContext
-import com.google.android.gms.auth.api.signin.*
-import com.google.firebase.auth.GoogleAuthProvider
-import com.google.android.gms.auth.api.signin.GoogleSignIn
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
 
 @Composable
 fun RegisterScreen(navController: NavController) {
@@ -66,45 +56,7 @@ fun RegisterScreen(navController: NavController) {
     var errorMessage by remember { mutableStateOf("") }
     val auth = FirebaseAuth.getInstance()
     var db = FirebaseFirestore.getInstance()
-    val context = LocalContext.current
-    val activity = context as Activity
 
-    val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-        .requestIdToken("628045113293-sod1s86ki88pfnfmqs4l2svgq2v9k6gg.apps.googleusercontent.com")
-        .requestEmail()
-        .build()
-
-    val googleSignInClient = GoogleSignIn.getClient(context, gso)
-
-    val launcher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
-        try {
-            val account = task.result
-            val credential = GoogleAuthProvider.getCredential(account.idToken, null)
-            auth.signInWithCredential(credential)
-                .addOnCompleteListener { authResult ->
-                    if (authResult.isSuccessful) {
-                        val user = auth.currentUser
-                        crearUsuarioBD(
-                            bd = db,
-                            email = user?.email ?: "",
-                            password = "",
-                            nombre = user?.displayName ?: "",
-                            direccion = "",
-                            auth = auth,
-                            telefono = ""
-                        )
-                        navController.navigate("home")
-                    } else {
-                        errorMessage = "Error al iniciar sesión con Google"
-                    }
-                }
-        } catch (e: Exception) {
-            errorMessage = "Error: ${e.message}"
-        }
-    }
 
     WauMatchTheme {
         Box(
@@ -336,8 +288,6 @@ fun RegisterScreen(navController: NavController) {
                     )
                 }
 
-
-
                 Spacer(modifier = Modifier.height(24.dp))
 
                 Row(
@@ -361,7 +311,6 @@ fun RegisterScreen(navController: NavController) {
             }
         }
     }
-
 }
 
 @SuppressLint("RestrictedApi")

@@ -47,8 +47,6 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.waumatch.MainActivity
-import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 
 @Composable
 fun ProfileScreen(navController: NavController, viewModel: ProfileManager = viewModel(factory = ProfileManagerFactory(LocalContext.current))) {
@@ -96,15 +94,7 @@ fun ProfileScreen(navController: NavController, viewModel: ProfileManager = view
     val auth = FirebaseAuth.getInstance()
     val currentUser = auth.currentUser
 
-
-    val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-        .requestIdToken("YOUR_WEB_CLIENT_ID") // Reemplaza con tu ID de cliente web
-        .requestEmail()
-        .build()
-
-    // Crea el GoogleSignInClient
-    val googleSignInClient = GoogleSignIn.getClient(context, gso)
-
+    // Cargar datos del perfil
     if (currentUser != null) {
         LaunchedEffect(currentUser.uid) {
             val usuario = db.collection("usuarios").document(currentUser.uid)
@@ -195,17 +185,11 @@ fun ProfileScreen(navController: NavController, viewModel: ProfileManager = view
             ) {
                 TextButton(
                     onClick = {
-                        // Cierra sesión en Firebase
                         FirebaseAuth.getInstance().signOut()
-
-                        // Cierra sesión en Google
-                        googleSignInClient.signOut().addOnCompleteListener {
-                            // Redirige a MainActivity después de cerrar ambas sesiones
-                            val intent = Intent(context, MainActivity::class.java).apply {
-                                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                            }
-                            context.startActivity(intent)
+                        val intent = Intent(context, MainActivity::class.java).apply {
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                         }
+                        context.startActivity(intent)
                     }
                 ) {
                     Text(text = "Cerrar sesión", color = ComposeColor(0xFF2EDFF2))
