@@ -14,6 +14,7 @@ import androidx.navigation.NavController
 import com.example.waumatch.viewmodel.ChatViewModel
 import com.example.waumatch.viewmodel.Message
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
@@ -33,68 +34,68 @@ fun ChatDetailScreen(
     val currentUser = viewModel.currentUser
     val messages = remember { mutableStateListOf<MessageWithId>() }
     var messageText by remember { mutableStateOf("") }
-
     var userName by remember { mutableStateOf<String?>(null) }
+    var messagesListener by remember { mutableStateOf<ListenerRegistration?>(null) }
+    val chatId by viewModel.chatIdWithUser.collectAsState()
 
+    val db = FirebaseFirestore.getInstance()
+
+    // Cargar nombre usuario
     LaunchedEffect(userId) {
-        val db = FirebaseFirestore.getInstance()
-        db.collection("usuarios")
-            .document(userId)
-            .get()
-            .addOnSuccessListener { document ->
-                if (document.exists()) {
-                    userName = document.getString("nombre") ?: "Usuario"
-                } else {
-                    userName = "Usuario"
-                }
+        db.collection("usuarios").document(userId).get()
+            .addOnSuccessListener { doc ->
+                userName = doc.getString("nombre") ?: "Usuario"
             }
             .addOnFailureListener {
                 userName = "Usuario"
             }
     }
 
+    // Cargar chatId del ViewModel
     LaunchedEffect(userId) {
         viewModel.loadChatWithUser(userId)
     }
 
-    val chatId by viewModel.chatIdWithUser.collectAsState()
-
-    LaunchedEffect(chatId) {
-        if (chatId != null) {
-            FirebaseFirestore.getInstance()
-                .collection("chats")
-                .document(chatId!!)
-                .collection("messages")
-                .orderBy("timestamp", Query.Direction.ASCENDING)
-                .addSnapshotListener { snapshot, error ->
-                    if (error == null && snapshot != null) {
-                        println("📥 Recibidos ${snapshot.size()} mensajes del chat")
-                        messages.clear()
-                        for (doc in snapshot.documents) {
-                            val message = doc.toObject(Message::class.java)
-                            if (message != null) {
-                                println("💬 Mensaje cargado:")
-                                println("    🆔 ID: ${doc.id}")
-                                println("    👤 Remitente: ${message.senderId}")
-                                println("    ✉️ Contenido: ${message.content}")
-                                messages.add(MessageWithId(doc.id, message))
-                            }
+    // Función para suscribirse a mensajes y actualizar lista
+    fun subscribeToMessages(chatId: String) {
+        messagesListener?.remove()
+        messagesListener = db.collection("chats")
+            .document(chatId)
+            .collection("messages")
+            .orderBy("timestamp", Query.Direction.ASCENDING)
+            .addSnapshotListener { snapshot, error ->
+                if (error == null && snapshot != null) {
+                    messages.clear()
+                    for (doc in snapshot.documents) {
+                        val message = doc.toObject(Message::class.java)
+                        if (message != null) {
+                            messages.add(MessageWithId(doc.id, message))
                         }
-                    } else {
-                        println("❌ Error en SnapshotListener: ${error?.message}")
                     }
                 }
-        } else {
-            println("⛔️ chatId sigue siendo null")
+            }
+    }
+
+    // Suscribirse cuando chatId cambia
+    LaunchedEffect(chatId) {
+        if (chatId != null) {
+            subscribeToMessages(chatId!!)
         }
     }
+
+    // Limpiar listener cuando se destruye el Composable
+    DisposableEffect(Unit) {
+        onDispose {
+            messagesListener?.remove()
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Conversación con ${userName ?: "Cargando..."}") },
                 actions = {
                     IconButton(onClick = {
-
                         navController.navigate("chat") {
                             popUpTo("chat") { inclusive = true }
                             launchSingleTop = true
@@ -153,7 +154,9 @@ fun ChatDetailScreen(
                 Button(
                     onClick = {
                         if (messageText.isNotBlank()) {
-                            viewModel.sendMessage(userId, messageText)
+                            viewModel.sendMessage(userId, messageText) { newChatId ->
+                                subscribeToMessages(newChatId)
+                            }
                             messageText = ""
                         }
                     },

@@ -44,11 +44,11 @@ fun MainNavigationBar(navController: NavController) {
                 onClick = {
                     if (!selected) {
                         navController.navigate(item.route) {
-                            launchSingleTop = true
-                            restoreState = true
                             popUpTo(navController.graph.startDestinationId) {
-                                saveState = true
+                                inclusive = true
                             }
+                            launchSingleTop = true
+                            restoreState = false
                         }
                     }
                 }

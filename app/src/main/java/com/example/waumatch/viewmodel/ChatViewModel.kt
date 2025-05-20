@@ -65,8 +65,8 @@ class ChatViewModel : ViewModel() {
             }
     }
 
-    fun sendMessage(toUserId: String, content: String) {
-        val chat = _chats.value.find { it.participants.contains(toUserId) }
+    fun sendMessage(toUserId: String, content: String, onChatReady: (String) -> Unit = {}) {
+        val chat = _chats.value.find { it.participants.contains(toUserId) && it.participants.contains(currentUser.id) }
 
         val message = Message(
             senderId = currentUser.id,
@@ -78,18 +78,16 @@ class ChatViewModel : ViewModel() {
         if (chat == null) {
             val newChat = Chat(
                 participants = listOf(currentUser.id, toUserId),
-                messages = mutableListOf(message) // Agrega el mensaje que enviaste
+                messages = mutableListOf(message)
             )
             db.collection("chats").add(newChat)
                 .addOnSuccessListener { documentRef ->
                     val chatId = documentRef.id
-                    // Actualiza localmente _chats agregando este nuevo chat con ID
                     _chats.value = _chats.value + newChat.copy(id = chatId)
-                    // Luego guarda el mensaje en subcolección
                     documentRef.collection("messages")
                         .add(message)
-                        .addOnSuccessListener { messageRef ->
-                            println("Mensaje guardado en nuevo chat con ID de mensaje: ${messageRef.id}")
+                        .addOnSuccessListener {
+                            onChatReady(chatId)
                         }
                         .addOnFailureListener { e ->
                             println("Error al guardar mensaje en nuevo chat: ${e.message}")
@@ -98,15 +96,12 @@ class ChatViewModel : ViewModel() {
                 .addOnFailureListener { e ->
                     println("Error al crear nuevo chat: ${e.message}")
                 }
-
         } else {
             chat.id?.let { chatId ->
-                db.collection("chats")
-                    .document(chatId)
-                    .collection("messages")
+                db.collection("chats").document(chatId).collection("messages")
                     .add(message)
-                    .addOnSuccessListener { messageRef ->
-                        println("Mensaje guardado en chat existente con ID de mensaje: ${messageRef.id}")
+                    .addOnSuccessListener {
+                        onChatReady(chatId)
                     }
                     .addOnFailureListener { e ->
                         println("Error al guardar mensaje en chat existente: ${e.message}")
