@@ -1,6 +1,7 @@
 package com.example.waumatch.viewmodel
 import com.google.firebase.firestore.FirebaseFirestore
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -113,7 +114,44 @@ class ChatViewModel : ViewModel() {
             } ?: println("Error: chat.id es null, no se puede guardar mensaje")
         }
     }
+    private val _chatIdWithUser = MutableStateFlow<String?>(null)
+    val chatIdWithUser: StateFlow<String?> = _chatIdWithUser
 
+    fun loadChatWithUser(userId: String) {
+        viewModelScope.launch {
+            val localChat = _chats.value.find {
+                it.participants.contains(userId) && it.participants.contains(currentUser.id)
+            }
+
+            if (localChat != null) {
+                _chatIdWithUser.value = localChat.id
+                println("✅ Chat encontrado localmente: ${localChat.id}")
+            } else {
+                // 🔥 Buscar en Firestore directamente
+                FirebaseFirestore.getInstance()
+                    .collection("chats")
+                    .whereArrayContains("participants", currentUser.id)
+                    .get()
+                    .addOnSuccessListener { result ->
+                        val chat = result.documents
+                            .mapNotNull { it.toObject(Chat::class.java)?.copy(id = it.id) }
+                            .find { it.participants.contains(userId) }
+
+                        if (chat != null) {
+                            _chatIdWithUser.value = chat.id
+                            println("🌐 Chat encontrado en Firestore: ${chat.id}")
+                        } else {
+                            println("❌ No se encontró chat con $userId")
+                            _chatIdWithUser.value = null
+                        }
+                    }
+                    .addOnFailureListener {
+                        println("🔥 Error al buscar chat en Firestore: ${it.message}")
+                        _chatIdWithUser.value = null
+                    }
+            }
+        }
+    }
     fun getChatWithUser(userId: String): Chat? {
         return _chats.value.find {
             it.participants.contains(userId) && it.participants.contains(currentUser.id)

@@ -15,6 +15,8 @@ import com.example.waumatch.viewmodel.ChatViewModel
 import com.example.waumatch.viewmodel.Message
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.first
 
 data class MessageWithId(
     val id: String,
@@ -52,29 +54,40 @@ fun ChatDetailScreen(
     }
 
     LaunchedEffect(userId) {
-        val chat = viewModel.getChatWithUser(userId)
-        val chatId = chat?.id
+        viewModel.loadChatWithUser(userId)
+    }
 
+    val chatId by viewModel.chatIdWithUser.collectAsState()
+
+    LaunchedEffect(chatId) {
         if (chatId != null) {
             FirebaseFirestore.getInstance()
                 .collection("chats")
-                .document(chatId)
+                .document(chatId!!)
                 .collection("messages")
                 .orderBy("timestamp", Query.Direction.ASCENDING)
                 .addSnapshotListener { snapshot, error ->
                     if (error == null && snapshot != null) {
+                        println("📥 Recibidos ${snapshot.size()} mensajes del chat")
                         messages.clear()
                         for (doc in snapshot.documents) {
                             val message = doc.toObject(Message::class.java)
                             if (message != null) {
+                                println("💬 Mensaje cargado:")
+                                println("    🆔 ID: ${doc.id}")
+                                println("    👤 Remitente: ${message.senderId}")
+                                println("    ✉️ Contenido: ${message.content}")
                                 messages.add(MessageWithId(doc.id, message))
                             }
                         }
+                    } else {
+                        println("❌ Error en SnapshotListener: ${error?.message}")
                     }
                 }
+        } else {
+            println("⛔️ chatId sigue siendo null")
         }
     }
-
     Scaffold(
         topBar = {
             TopAppBar(
