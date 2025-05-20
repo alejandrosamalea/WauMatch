@@ -25,6 +25,8 @@ import com.example.waumatch.ui.screens.Profiles.ProfileScreen
 import com.example.waumatch.ui.theme.WauMatchTheme
 import com.example.waumatch.viewmodel.CloudinaryManager
 import com.google.firebase.auth.FirebaseAuth
+import com.example.waumatch.viewmodel.ChatViewModel
+
 
 
 class MainActivity : ComponentActivity() {
@@ -61,7 +63,22 @@ class MainActivity : ComponentActivity() {
                         modifier = Modifier.padding(innerPadding)
                     ) {
                         composable(NavigationItem.Home.route) { HomeScreen(navController) }
-                        composable(NavigationItem.Chat.route) { ChatScreen() }
+                        composable(NavigationItem.Chat.route) {
+                            val chatViewModel: ChatViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+                            ChatScreen(navController, chatViewModel)
+                        }
+                        composable(
+                            route = "chatDetail/{userId}",
+                            arguments = listOf(navArgument("userId") { type = NavType.StringType })
+                        ) { backStackEntry ->
+                            val userId = backStackEntry.arguments?.getString("userId") ?: ""
+                            val chatViewModel: ChatViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+                            ChatDetailScreen(
+                                navController = navController,
+                                userId = userId,
+                                viewModel = chatViewModel
+                            )
+                        }
                         composable(NavigationItem.Add.route) { AddScreen(navController) }
                         composable(NavigationItem.Favorites.route) { FavoritesScreen(navController) }
                         composable(NavigationItem.Profile.route) { ProfileScreen(navController) }

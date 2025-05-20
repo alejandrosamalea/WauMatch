@@ -754,7 +754,7 @@ fun ForeignProfileScreen(userId: String, onBackClick: () -> Unit, navController:
         }
         item {
             Button(
-                onClick = { /* Acción de contacto */ },
+                onClick = { navController.navigate("chatDetail/${userId}") },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp, vertical = 30.dp),
