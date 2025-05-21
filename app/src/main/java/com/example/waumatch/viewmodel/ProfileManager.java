@@ -172,6 +172,11 @@ public class ProfileManager extends ViewModel {
         return profileData;
     }
 
+    public MutableLiveData<ProfileData> getProfileDataExt(String id) {
+        loadProfileById(id);
+        return profileData;
+    }
+
     public MutableLiveData<Boolean> getIsDataLoaded() {
         return isDataLoaded;
     }
@@ -201,6 +206,26 @@ public class ProfileManager extends ViewModel {
                     isDataLoaded.setValue(true);
                 });
     }
+
+    public void loadProfileById(String userId) {
+        isDataLoaded.setValue(false);
+        db.collection("usuarios").document(userId)
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (documentSnapshot.exists()) {
+                        ProfileData data = documentSnapshot.toObject(ProfileData.class);
+                        profileData.setValue(data);
+                    } else {
+                        profileData.setValue(new ProfileData());
+                    }
+                    isDataLoaded.setValue(true);
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(context, "Error al cargar perfil: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    isDataLoaded.setValue(true);
+                });
+    }
+
 
     public void saveChanges(String nombre, String subtitle, String about, @NotNull Map<String, ? extends Map<String, String>> availability, List<String> tags) {
         if (auth.getCurrentUser() == null) {

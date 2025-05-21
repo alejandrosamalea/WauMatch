@@ -550,8 +550,8 @@ fun ProfileScreen(navController: NavController, viewModel: ProfileManager = view
                     } else {
                         reviews.forEach { review ->
                             Review(
-                                reviewerImageUrl = review.emisorFoto,
-                                reviewerName = review.nombre,
+                                reviewerImageUrl = review.reviewerImageUrl,
+                                reviewerName = review.reviewerName,
                                 rating = review.rating,
                                 reviewText = review.comment,
                                 onClick = { navController.navigate("foreignProfile/${review.idEmisor}") }
@@ -560,10 +560,8 @@ fun ProfileScreen(navController: NavController, viewModel: ProfileManager = view
                         }
                     }
                 }
-                // Add "Ver todas las reseñas" button
                 TextButton(
                     onClick = {
-                        // Navigate to a screen that shows all reviews
                         navController.navigate("allReviews/${currentUser?.uid}")
                     },
                     modifier = Modifier

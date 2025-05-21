@@ -2,6 +2,7 @@ package com.example.waumatch.ui.screens.Profiles
 
 import android.content.Context
 import android.util.Log
+import com.google.firebase.firestore.FieldPath
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -20,6 +21,7 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -31,10 +33,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.waumatch.ui.theme.OceanBlue
 import com.example.waumatch.ui.theme.SkyBlue
+import com.example.waumatch.viewmodel.ProfileManager
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import java.text.SimpleDateFormat
@@ -75,10 +79,10 @@ fun ForeignProfileScreen(userId: String, onBackClick: () -> Unit, navController:
     }
     val reviewCount = reviews.size
 
-    val
-
-            db = FirebaseFirestore.getInstance()
+    val db = FirebaseFirestore.getInstance()
     val authUser = FirebaseAuth.getInstance().currentUser
+
+    val profileManager: ProfileManager = viewModel(factory = ProfileManagerFactory(context))
 
     LaunchedEffect(userId) {
         val usuario = db.collection("usuarios").document(userId)
@@ -133,10 +137,11 @@ fun ForeignProfileScreen(userId: String, onBackClick: () -> Unit, navController:
     }
 
     LaunchedEffect(userId) {
-        loadTopReviews(userId) { fetchedReviews ->
+        loadTopReviews(userId, { fetchedReviews ->
             reviews = fetchedReviews
-        }
+        })
     }
+
 
     LaunchedEffect(userId, authUser?.uid) {
         if (authUser != null) {
@@ -151,8 +156,6 @@ fun ForeignProfileScreen(userId: String, onBackClick: () -> Unit, navController:
                             rating = reviewDoc.getLong("rating")?.toInt() ?: 0,
                             comment = reviewDoc.getString("comment") ?: "",
                             idEmisor = reviewDoc.getString("idEmisor") ?: "",
-                            nombre = reviewDoc.getString("nombre") ?: "Anónimo",
-                            emisorFoto = reviewDoc.getString("emisorFoto") ?: "",
                             fechaCreacion = reviewDoc.getString("fechaCreacion") ?: "",
                             idReceptor = reviewDoc.getString("idReceptor") ?: ""
                         )
@@ -203,8 +206,6 @@ fun ForeignProfileScreen(userId: String, onBackClick: () -> Unit, navController:
                             rating = rating,
                             comment = reviewText,
                             idEmisor = emisorId,
-                            nombre = nombre,
-                            emisorFoto = fotoPerfil,
                             fechaCreacion = SimpleDateFormat("MM/yyyy", Locale.getDefault()).format(Date()),
                             idReceptor = userId
                         )
@@ -260,8 +261,6 @@ fun ForeignProfileScreen(userId: String, onBackClick: () -> Unit, navController:
                     rating = rating,
                     comment = reviewText,
                     idEmisor = emisorId,
-                    nombre = userReview?.nombre ?: "Anónimo",
-                    emisorFoto = userReview?.emisorFoto ?: "",
                     fechaCreacion = userReview?.fechaCreacion ?: SimpleDateFormat("MM/yyyy", Locale.getDefault()).format(Date()),
                     idReceptor = userId
                 )
@@ -723,8 +722,8 @@ fun ForeignProfileScreen(userId: String, onBackClick: () -> Unit, navController:
                     } else {
                         reviews.forEach { review ->
                             Review(
-                                reviewerImageUrl = review.emisorFoto,
-                                reviewerName = review.nombre,
+                                reviewerImageUrl = review.reviewerImageUrl,
+                                reviewerName = review.reviewerName,
                                 rating = review.rating,
                                 reviewText = review.comment,
                                 onClick = { navController.navigate("foreignProfile/${review.idEmisor}") }
@@ -733,7 +732,6 @@ fun ForeignProfileScreen(userId: String, onBackClick: () -> Unit, navController:
                         }
                     }
                 }
-                // Add "Ver todas las reseñas" button
                 if (reviews.isNotEmpty()) {
                     TextButton(
                         onClick = {
@@ -779,46 +777,72 @@ data class ReviewData(
     val rating: Int = 0,
     val comment: String = "",
     val idEmisor: String = "",
-    val nombre: String = "",
-    val emisorFoto: String = "",
     val fechaCreacion: String = "",
-    val idReceptor: String = ""
+    val idReceptor: String = "",
+    val reviewerName: String = "Anónimo", // Nuevo campo
+    val reviewerImageUrl: String = "https://via.placeholder.com/150" // Nuevo campo
 ) {
-    constructor() : this(0, "", "", "", "", "")
+    constructor() : this(0, "", "", "", "", "Anónimo", "https://via.placeholder.com/150")
 }
 
 fun loadTopReviews(userId: String, onResult: (List<ReviewData>) -> Unit) {
-    if (userId.isNotBlank()) {
-        FirebaseFirestore.getInstance()
-            .collection("reseñas")
-            .whereEqualTo("idReceptor", userId.trim())
-            .get()
-            .addOnSuccessListener { result ->
-                val fetchedReviews = result.mapNotNull { doc ->
-                    try {
-                        ReviewData(
-                            nombre = doc.getString("nombre") ?: "",
-                            comment = doc.getString("comment") ?: "",
-                            emisorFoto = doc.getString("emisorFoto") ?: "",
-                            rating = doc.getLong("rating")?.toInt() ?: 0,
-                            fechaCreacion = doc.getString("fechaCreacion") ?: "",
-                            idReceptor = doc.getString("idReceptor") ?: "",
-                            idEmisor = doc.getString("idEmisor") ?: ""
-                        )
-                    } catch (e: Exception) {
-                        Log.e("FirestoreParse", "Error al convertir documento: ${doc.id}", e)
-                        null
-                    }
-                }
-                Log.d("FirestoreResult", "Se obtuvieron ${fetchedReviews.size} reseñas")
-                onResult(fetchedReviews)
-            }
-            .addOnFailureListener { exception ->
-                Log.e("FirestoreError", "Error al obtener documentos", exception)
-                onResult(emptyList())
-            }
-    } else {
+    if (userId.isBlank()) {
         Log.e("FirestoreError", "userId es null o vacío")
         onResult(emptyList())
+        return
     }
+
+    val db = FirebaseFirestore.getInstance()
+    db.collection("reseñas")
+        .whereEqualTo("idReceptor", userId.trim())
+        .get()
+        .addOnSuccessListener { result ->
+            val fetchedReviews = mutableListOf<ReviewData>()
+            val userIds = result.mapNotNull { it.getString("idEmisor") }.distinct()
+
+            if (userIds.isEmpty()) {
+                Log.d("FirestoreResult", "No se encontraron reseñas")
+                onResult(emptyList())
+                return@addOnSuccessListener
+            }
+
+            db.collection("usuarios")
+                .whereIn(FieldPath.documentId(), userIds)
+                .get()
+                .addOnSuccessListener { userResult ->
+                    val userMap = userResult.documents.associate { doc ->
+                        doc.id to Pair(
+                            doc.getString("nombre") ?: "Anónimo",
+                            doc.getString("profileImage") ?: "https://via.placeholder.com/150"
+                        )
+                    }
+
+                    fetchedReviews.addAll(result.mapNotNull { doc ->
+                        try {
+                            val idEmisor = doc.getString("idEmisor") ?: return@mapNotNull null
+                            val (name, imageUrl) = userMap[idEmisor] ?: Pair("Anónimo", "https://via.placeholder.com/150")
+                            ReviewData(
+                                comment = doc.getString("comment") ?: "",
+                                rating = doc.getLong("rating")?.toInt() ?: 0,
+                                fechaCreacion = doc.getString("fechaCreacion") ?: "",
+                                idReceptor = doc.getString("idReceptor") ?: "",
+                                idEmisor = idEmisor,
+                                reviewerName = name,
+                                reviewerImageUrl = imageUrl
+                            )
+                        } catch (e: Exception) {
+                            Log.e("FirestoreParse", "Error al convertir documento: ${doc.id}", e)
+                            null
+                        }
+                    })
+
+                    Log.d("FirestoreResult", "Se obtuvieron ${fetchedReviews.size} reseñas")
+                    onResult(fetchedReviews)
+                }
+
+        }
+        .addOnFailureListener { exception ->
+            Log.e("FirestoreError", "Error al obtener reseñas", exception)
+            onResult(emptyList())
+        }
 }

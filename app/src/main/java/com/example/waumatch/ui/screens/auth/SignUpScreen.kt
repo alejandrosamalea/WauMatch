@@ -380,13 +380,12 @@ fun crearUsuarioBD(bd: FirebaseFirestore, email: String, password: String, nombr
         val usuarioData = hashMapOf(
             "nombre" to nombre,
             "email" to email,
-            "password" to password,
             "direccion" to direccion,
             "telefono" to telefono,
             "profileImage" to imageUrl,
             "provincia" to provincia,
             "fechaRegistro" to SimpleDateFormat("MM/yyyy", Locale.getDefault()).format(Date()),
-            "favoritos" to emptyList<String>()
+            "profileImage" to imageUrl
         )
         bd.collection("usuarios").document(user.uid).set(usuarioData)
             .addOnSuccessListener {

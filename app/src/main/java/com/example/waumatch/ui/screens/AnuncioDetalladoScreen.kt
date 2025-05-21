@@ -7,30 +7,42 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
-import com.example.waumatch.ui.navigation.NavigationItem
+import com.example.waumatch.ui.screens.Profiles.ProfileManagerFactory
+import com.example.waumatch.ui.screens.Profiles.ReviewData
+import com.example.waumatch.ui.screens.Profiles.loadTopReviews
+import com.example.waumatch.ui.theme.AquaLight
+import com.example.waumatch.ui.theme.NightBlue
+import com.example.waumatch.ui.theme.OceanBlue
+import com.example.waumatch.ui.theme.SkyBlue
 import com.example.waumatch.viewmodel.AnuncioViewModel
 import com.example.waumatch.viewmodel.AnuncioViewModelFactory
+import com.example.waumatch.viewmodel.ProfileManager
 import com.google.firebase.auth.FirebaseAuth
-import kotlin.math.log
 
 @Composable
 fun AnuncioDetalladoScreen(
@@ -44,151 +56,257 @@ fun AnuncioDetalladoScreen(
 
     val anuncio = viewModel.getAnuncioById(anuncioId).collectAsState(initial = null).value
     val auth = FirebaseAuth.getInstance()
+    var localProfileImage by remember { mutableStateOf<String?>(null) }
+
+    val profileManager: ProfileManager = viewModel(factory = ProfileManagerFactory(context))
+    val profileData by profileManager.getProfileDataExt(anuncio?.idCreador ?: "1").observeAsState(ProfileManager.ProfileData())
+
+    var reviews by remember { mutableStateOf(listOf<ReviewData>()) }
+    val reviewCount = reviews.size
+    val averageRating = if (reviews.isNotEmpty()) {
+        String.format("%.1f", reviews.map { it.rating }.average())
+    } else {
+        "0.0"
+    }
+
+    val profileImage = localProfileImage ?: profileData.profileImage.takeIf { it.isNotEmpty() } ?: "https://via.placeholder.com/150"
+
+
+    if (anuncio != null) {
+        LaunchedEffect(anuncio.idCreador) {
+            loadTopReviews(anuncio.idCreador, { fetchedReviews ->
+                reviews = fetchedReviews
+            })
+        }
+
+    }
 
     if (anuncio == null) {
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-            CircularProgressIndicator()
+            CircularProgressIndicator(color = AquaLight)
         }
     } else {
-
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(
-                    brush = Brush.verticalGradient(
-                        listOf(Color(0xFF024873), Color(0xFF1D7A93))
-                    )
-                )
+                .background(OceanBlue)
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 10.dp, bottom = 30.dp)
-                    .clip(RoundedCornerShape(bottomStart = 30.dp, bottomEnd = 30.dp))
-            ) {
-                IconButton(
-                    onClick = onBackClick,
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(
-                            top = 16.dp,
-                            start = 16.dp
-                        ) // Ajuste: era `end =`, ahora es `start =`
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Volver",
-                        tint = Color.White
-                    )
-                }
-            }
-                Column(
+            Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
-                    .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .padding(bottom = 80.dp)
             ) {
-                // Imagen
-                Image(
-                    painter = rememberAsyncImagePainter(model = anuncio.imagenes.firstOrNull()),
-                    contentDescription = "Imagen del anuncio",
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .defaultMinSize(minHeight = 250.dp)
-                        .padding(bottom = 16.dp),
-                )
+                        .height(450.dp)
+                ) {
+                    Image(
+                        painter = rememberAsyncImagePainter(model = anuncio.imagenes.firstOrNull()),
+                        contentDescription = "Imagen del anuncio",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
 
-                // Creador subrayado
-                Text(
-                    text = "Creador: ${anuncio.creador}",
-                    style = MaterialTheme.typography.bodyLarge.copy(
-                        color = Color.White,
-                        fontWeight = FontWeight.Medium
-                    ),
-                    modifier = Modifier
-                        .padding(bottom = 8.dp)
-                        .fillMaxWidth()
-                        .align(Alignment.Start)
-                        .clickable {
-                            Log.d("NAVEGACION", "Navegando a perfil de: ${anuncio.idCreador}")
-                            navController.navigate("foreignProfile/${anuncio.idCreador}")
-                        }
-                        .drawBehind {
-                            val strokeWidth = 1.dp.toPx()
-                            val y = size.height - strokeWidth / 2
-                            drawLine(
-                                color = Color.White,
-                                start = androidx.compose.ui.geometry.Offset(0f, y),
-                                end = androidx.compose.ui.geometry.Offset(size.width, y),
-                                strokeWidth = strokeWidth
+                    IconButton(
+                        onClick = onBackClick,
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(16.dp)
+                            .background(NightBlue.copy(alpha = 0.7f), shape = CircleShape)
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Volver",
+                            tint = Color.White
+                        )
+                    }
+
+                    Row(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(16.dp)
+                    ) {
+                        IconButton(
+                            onClick = { viewModel.toggleFavorito(anuncio) },
+                            modifier = Modifier
+                                .background(NightBlue.copy(alpha = 0.7f), shape = CircleShape)
+                        ) {
+                            val isFav = anuncio.esFavorito
+                            Icon(
+                                imageVector = if (isFav) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                contentDescription = if (isFav) "Desmarcar favorito" else "Marcar favorito",
+                                tint = if (isFav) Color.Red else Color.White
                             )
                         }
-                )
 
+                        Spacer(modifier = Modifier.width(8.dp))
+                        IconButton(
+                            onClick = { },
+                            modifier = Modifier
+                                .background(NightBlue.copy(alpha = 0.7f), shape = CircleShape)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Share,
+                                contentDescription = "Compartir",
+                                tint = Color.White
+                            )
+                        }
+                    }
+                }
 
-                // Título
-                Text(
-                    text = anuncio.titulo,
-                    style = MaterialTheme.typography.headlineSmall.copy(
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold
-                    ),
+                Column(
                     modifier = Modifier
-                        .padding(top = 8.dp)
                         .fillMaxWidth()
-                        .align(Alignment.Start)
-                )
-
-                // Descripción
-                Text(
-                    text = anuncio.descripcion,
-                    style = MaterialTheme.typography.bodyLarge.copy(color = Color.White),
-                    modifier = Modifier
-                        .padding(top = 4.dp, bottom = 16.dp)
-                        .fillMaxWidth()
-                        .align(Alignment.Start)
-                )
-
-                // Fechas de disponibilidad
-                Text(
-                    text = "Disponibilidad:",
-                    style = MaterialTheme.typography.bodyLarge.copy(
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold
-                    ),
-                    modifier = Modifier
-                        .align(Alignment.Start)
-                        .padding(bottom = 4.dp)
-                )
-                Text(
-                    text = "Desde: ${anuncio.fechaInicio}",
-                    style = MaterialTheme.typography.bodyMedium.copy(color = Color.White),
-                    modifier = Modifier
-                        .align(Alignment.Start)
-                )
-                Text(
-                    text = "Hasta: ${anuncio.fechaFin}",
-                    style = MaterialTheme.typography.bodyMedium.copy(color = Color.White),
-                    modifier = Modifier
-                        .align(Alignment.Start)
-                        .padding(bottom = 32.dp)
-                )
-
-                // Botón centrado
-                Button(
-                    onClick = { /* Acción del botón */ },
-                    modifier = Modifier
-                        .align(Alignment.CenterHorizontally)
-                        .padding(vertical = 16.dp)
+                        .background(OceanBlue)
+                        .padding(horizontal = 16.dp)
                 ) {
-                    Text(text = "Contactar", style = MaterialTheme.typography.bodyLarge)
+                    Text(
+                        text = anuncio.titulo,
+                        style = MaterialTheme.typography.headlineSmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 24.sp,
+                            color = Color.White
+                        ),
+                        modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
+                    )
+                    Text(
+                        text = "5 €",
+                        style = MaterialTheme.typography.headlineMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            fontSize = 28.sp
+                        ),
+                        modifier = Modifier.padding(bottom = 4.dp)
+                    )
+
+                    Divider(
+                        color = Color.White.copy(alpha = 0.3f),
+                        thickness = 1.dp,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 16.dp)
+                            .clickable {
+                                Log.d("NAVEGACION", "Navegando a perfil de: ${anuncio.idCreador}")
+                                navController.navigate("foreignProfile/${anuncio.idCreador}")
+                            },
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Image(
+                            painter = rememberAsyncImagePainter(model = profileImage),
+                            contentDescription = "Foto de perfil",
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape),
+                            contentScale = ContentScale.Crop
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column {
+                            Text(
+                                text = anuncio.creador,
+                                style = MaterialTheme.typography.bodyLarge.copy(
+                                    fontWeight = FontWeight.Medium,
+                                    color = Color.White
+                                )
+                            )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.Star,
+                                    contentDescription = "Estrella",
+                                    tint = Color(0xFFFFD700),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = averageRating + " (" + (if (reviewCount == 1) "$reviewCount valoracion" else "$reviewCount valoraciones") + ")",
+                                    style = MaterialTheme.typography.bodySmall.copy(color = Color.White)
+                                )
+                            }
+                        }
+                    }
+
+                    Divider(
+                        color = Color.White.copy(alpha = 0.3f),
+                        thickness = 1.dp,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+
+                    Text(
+                        text = anuncio.descripcion,
+                        style = MaterialTheme.typography.bodyLarge.copy(color = Color.White),
+                        modifier = Modifier
+                            .padding(bottom = 16.dp)
+                            .fillMaxWidth()
+                    )
+
+                    Divider(
+                        color = Color.White.copy(alpha = 0.3f),
+                        thickness = 1.dp,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+
+                    Text(
+                        text = "Disponibilidad:",
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        ),
+                        modifier = Modifier.padding(bottom = 4.dp)
+                    )
+                    Text(
+                        text = "Desde: ${anuncio.fechaInicio}",
+                        style = MaterialTheme.typography.bodyMedium.copy(color = Color.White),
+                        modifier = Modifier.padding(bottom = 4.dp)
+                    )
+                    Text(
+                        text = "Hasta: ${anuncio.fechaFin}",
+                        style = MaterialTheme.typography.bodyMedium.copy(color = Color.White),
+                        modifier = Modifier.padding(bottom = 32.dp)
+                    )
+                }
+            }
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.BottomCenter)
+                    .background(OceanBlue)
+            ) {
+                Divider(
+                    color = Color.White.copy(alpha = 0.3f),
+                    thickness = 1.dp,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+                Button(
+                    onClick = {navController.navigate("chatDetail/${anuncio.idCreador}")},
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                        .height(50.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = AquaLight
+                    ),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(
+                        text = "Contactar",
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            color = NightBlue,
+                            fontWeight = FontWeight.Bold
+                        )
+                    )
                 }
             }
         }
     }
 }
+
 
