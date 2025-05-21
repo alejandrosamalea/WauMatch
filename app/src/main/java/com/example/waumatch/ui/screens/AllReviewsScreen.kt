@@ -32,6 +32,8 @@ import com.example.waumatch.ui.theme.OceanBlue
 import com.example.waumatch.ui.theme.SkyBlue
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlin.collections.set
+import com.google.firebase.firestore.FieldPath
+
 
 @Composable
 fun AllReviewsScreen(userId: String, onBackClick: () -> Unit, navController: NavController) {
@@ -304,46 +306,75 @@ data class ReviewData(
     val emisorFoto: String = "",
     val fechaCreacion: String = "",
     val idReceptor: String = "",
-    val usefulCount: Int = 0 // Campo para contar votos útiles
+    val usefulCount: Int = 0
 ) {
     constructor() : this(0, "", "", "", "", "", "", 0)
 }
 
 fun loadReviews(userId: String, onResult: (List<ReviewData>) -> Unit) {
-    if (userId.isNotBlank()) {
-        FirebaseFirestore.getInstance()
-            .collection("reseñas")
-            .whereEqualTo("idReceptor", userId.trim())
-            .get()
-            .addOnSuccessListener { result ->
-                val fetchedReviews = result.mapNotNull { doc ->
-                    try {
-                        ReviewData(
-                            nombre = doc.getString("nombre") ?: "",
-                            comment = doc.getString("comment") ?: "",
-                            emisorFoto = doc.getString("emisorFoto") ?: "",
-                            rating = doc.getLong("rating")?.toInt() ?: 0,
-                            fechaCreacion = doc.getString("fechaCreacion") ?: "",
-                            idReceptor = doc.getString("idReceptor") ?: "",
-                            idEmisor = doc.getString("idEmisor") ?: "",
-                            usefulCount = doc.getLong("usefulCount")?.toInt() ?: 0
-                        )
-                    } catch (e: Exception) {
-                        Log.e("FirestoreParse", "Error al convertir documento: ${doc.id}", e)
-                        null
-                    }
-                }
-                Log.d("FirestoreResult", "Se obtuvieron ${fetchedReviews.size} reseñas")
-                onResult(fetchedReviews)
-            }
-            .addOnFailureListener { exception ->
-                Log.e("FirestoreError", "Error al obtener documentos", exception)
-                onResult(emptyList())
-            }
-    } else {
+    if (userId.isBlank()) {
         Log.e("FirestoreError", "userId es null o vacío")
         onResult(emptyList())
+        return
     }
+
+    val db = FirebaseFirestore.getInstance()
+    db.collection("reseñas")
+        .whereEqualTo("idReceptor", userId.trim())
+        .get()
+        .addOnSuccessListener { result ->
+            val fetchedReviews = mutableListOf<ReviewData>()
+            val userIds = result.mapNotNull { it.getString("idEmisor") }.distinct()
+
+            if (userIds.isEmpty()) {
+                Log.d("FirestoreResult", "No se encontraron reseñas")
+                onResult(emptyList())
+                return@addOnSuccessListener
+            }
+
+            db.collection("usuarios")
+                .whereIn(FieldPath.documentId(), userIds)
+                .get()
+                .addOnSuccessListener { userResult ->
+                    val userMap = userResult.documents.associate { doc ->
+                        doc.id to Pair(
+                            doc.getString("nombre") ?: "Anónimo",
+                            doc.getString("profileImage") ?: "https://via.placeholder.com/150"
+                        )
+                    }
+
+                    fetchedReviews.addAll(result.mapNotNull { doc ->
+                        try {
+                            val idEmisor = doc.getString("idEmisor") ?: return@mapNotNull null
+                            val (name, imageUrl) = userMap[idEmisor] ?: Pair("Anónimo", "https://via.placeholder.com/150")
+                            ReviewData(
+                                nombre = name,
+                                comment = doc.getString("comment") ?: "",
+                                emisorFoto = imageUrl,
+                                rating = doc.getLong("rating")?.toInt() ?: 0,
+                                fechaCreacion = doc.getString("fechaCreacion") ?: "",
+                                idReceptor = doc.getString("idReceptor") ?: "",
+                                idEmisor = doc.getString("idEmisor") ?: "",
+                                usefulCount = doc.getLong("usefulCount")?.toInt() ?: 0
+                            )
+                        } catch (e: Exception) {
+                            Log.e("FirestoreParse", "Error al convertir documento: ${doc.id}", e)
+                            null
+                        }
+                    })
+
+                    Log.d("FirestoreResult", "Se obtuvieron ${fetchedReviews.size} reseñas")
+                    onResult(fetchedReviews)
+                }
+                .addOnFailureListener { exception ->
+                    Log.e("FirestoreError", "Error al obtener usuarios", exception)
+                    onResult(emptyList())
+                }
+        }
+        .addOnFailureListener { exception ->
+            Log.e("FirestoreError", "Error al obtener reseñas", exception)
+            onResult(emptyList())
+        }
 }
 
 fun updateUsefulCount(emisorId: String, receptorId: String, comment: String, isUseful: Boolean, previousVote: Boolean) {
