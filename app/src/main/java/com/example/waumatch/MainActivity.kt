@@ -91,16 +91,30 @@ class MainActivity : ComponentActivity() {
                         ) { backStackEntry ->
                             val userId = backStackEntry.arguments?.getString("userId")
                             val currentUser = FirebaseAuth.getInstance().currentUser
-                            if (currentUser != null) {
+
+                            if (currentUser == null) {
+                                // Si no hay usuario autenticado, redirigir al login
+                                LaunchedEffect(Unit) {
+                                    navController.navigate(NavigationItem.Login.route) {
+                                        popUpTo(navController.graph.startDestinationId) { inclusive = true }
+                                    }
+                                }
+                            } else if (userId == null || userId == "{userId}" || userId.isEmpty() || userId == currentUser.uid) {
+                                // Redirigir a ProfileScreen si userId es inválido o es el del usuario autenticado
+                                LaunchedEffect(Unit) {
+                                    navController.navigate(NavigationItem.Profile.route) {
+                                        popUpTo(NavigationItem.ForeignProfile.route) { inclusive = true }
+                                        // Evitar múltiples instancias de ProfileScreen
+                                        launchSingleTop = true
+                                    }
+                                }
+                            } else {
+                                // Mostrar ForeignProfileScreen para otro usuario
                                 ForeignProfileScreen(
-                                    userId = userId?.takeIf { it != "{userId}" && it.isNotEmpty() } ?: currentUser.uid,
+                                    userId = userId,
                                     onBackClick = { navController.popBackStack() },
                                     navController = navController
                                 )
-                            } else {
-                                navController.navigate(NavigationItem.Login.route) {
-                                    popUpTo(navController.graph.startDestinationId) { inclusive = true }
-                                }
                             }
                         }
                         composable(

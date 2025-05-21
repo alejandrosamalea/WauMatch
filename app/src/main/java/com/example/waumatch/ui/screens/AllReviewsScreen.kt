@@ -40,16 +40,14 @@ fun AllReviewsScreen(userId: String, onBackClick: () -> Unit, navController: Nav
     val reviews = remember { mutableStateOf<List<ReviewData>>(emptyList()) }
     var filter by remember { mutableStateOf("Todas") }
     val filterOptions = listOf("Todas", "Positivas", "Críticas", "5", "4", "3", "2", "1")
-    val votedReviews = remember { mutableStateMapOf<String, Boolean>() } // Clave: idEmisor+comment, Valor: true (Sí) o false (No)
+    val votedReviews = remember { mutableStateMapOf<String, Boolean>() }
 
-    // Load reviews from Firestore
     LaunchedEffect(userId) {
         loadReviews(userId) { fetchedReviews ->
             reviews.value = fetchedReviews
         }
     }
 
-    // Filter reviews based on the selected filter
     val filteredReviews = when (filter) {
         "Positivas" -> reviews.value.filter { it.rating >= 4 }
         "Críticas" -> reviews.value.filter { it.rating <= 3 }
@@ -94,7 +92,7 @@ fun AllReviewsScreen(userId: String, onBackClick: () -> Unit, navController: Nav
             }
         }
 
-        // Filter buttons in a LazyRow for horizontal scrolling
+
         item {
             LazyRow(
                 modifier = Modifier

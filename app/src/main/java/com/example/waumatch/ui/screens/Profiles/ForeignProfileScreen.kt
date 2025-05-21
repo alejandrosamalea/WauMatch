@@ -174,7 +174,7 @@ fun ForeignProfileScreen(userId: String, onBackClick: () -> Unit, navController:
         }
     }
 
-    fun handleSubmitReview(bd: FirebaseFirestore, userId: String, context: Context) {
+    fun handleSubmitReview(bd: FirebaseFirestore, userId: String, context: Context, onReviewsUpdated: (List<ReviewData>) -> Unit) {
         val emisorId = authUser?.uid ?: return
 
         if (rating == 0) {
@@ -200,21 +200,26 @@ fun ForeignProfileScreen(userId: String, onBackClick: () -> Unit, navController:
                 bd.collection("usuarios").document(emisorId).get()
                     .addOnSuccessListener { document ->
                         val nombre = document.getString("nombre") ?: "Anónimo"
-                        val fotoPerfil = document.getString("profileImage") ?: ""
+                        val fotoPerfil = document.getString("profileImage") ?: "https://via.placeholder.com/150"
 
                         val newReview = ReviewData(
                             rating = rating,
                             comment = reviewText,
                             idEmisor = emisorId,
                             fechaCreacion = SimpleDateFormat("MM/yyyy", Locale.getDefault()).format(Date()),
-                            idReceptor = userId
+                            idReceptor = userId,
+                            reviewerName = nombre, // Usar el nombre real del usuario
+                            reviewerImageUrl = fotoPerfil // Usar la imagen real del usuario
                         )
 
                         bd.collection("reseñas").add(newReview)
                             .addOnSuccessListener {
                                 Toast.makeText(context, "¡Reseña enviada con éxito!", Toast.LENGTH_SHORT).show()
                                 userReview = newReview
-                                reviews = listOf(newReview) + reviews
+                                // Recargar las reseñas desde Firestore para asegurar consistencia
+                                loadTopReviews(userId) { updatedReviews ->
+                                    onReviewsUpdated(updatedReviews)
+                                }
                                 rating = 0
                                 reviewText = ""
                             }
@@ -643,7 +648,9 @@ fun ForeignProfileScreen(userId: String, onBackClick: () -> Unit, navController:
                                     if (isEditingReview) {
                                         handleUpdateReview(db, userId, context)
                                     } else {
-                                        handleSubmitReview(db, userId, context)
+                                        handleSubmitReview(db, userId, context) { updatedReviews ->
+                                            reviews = updatedReviews
+                                        }
                                     }
                                 },
                                 modifier = Modifier
