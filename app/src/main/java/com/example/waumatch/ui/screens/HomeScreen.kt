@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Brush
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.waumatch.data.local.AnuncioEntity
 import com.example.waumatch.ui.components.AnuncioCard
 import com.example.waumatch.ui.components.SearchBar
 import com.example.waumatch.viewmodel.AnuncioViewModel
@@ -29,16 +30,38 @@ fun HomeScreen(navController: NavController) {
 
     val anuncios by viewModel.anuncios.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
+    var filtrarPorComunidad by remember { mutableStateOf(false) }
 
-    // Filtrar anuncios basados en el texto de búsqueda
-    val anunciosFiltrados = if (searchQuery.isBlank()) {
-        anuncios
-    } else {
-        anuncios.filter {
-            it.titulo.contains(searchQuery, ignoreCase = true) ||
-                    it.descripcion.contains(searchQuery, ignoreCase = true)
+
+    val anunciosState = viewModel.anuncios.collectAsState()
+
+    val anunciosFiltrados by produceState(
+        initialValue = emptyList<AnuncioEntity>(),
+        searchQuery,
+        filtrarPorComunidad,
+        anunciosState.value
+    ) {
+        val idUsuario = viewModel.obtenerIdUsuarioActual()
+
+        val listaFiltrada = anunciosState.value.filter { anuncio ->
+            val noEsDelUsuario = anuncio.idCreador != idUsuario
+
+            val coincideBusqueda = searchQuery.isBlank() ||
+                    anuncio.titulo.contains(searchQuery, ignoreCase = true) ||
+                    anuncio.descripcion.contains(searchQuery, ignoreCase = true)
+
+            val coincideComunidad = if (!filtrarPorComunidad) {
+                true
+            } else {
+                viewModel.perteneceALaComunidadDelUsuario(anuncio.idCreador)
+            }
+
+            noEsDelUsuario && coincideBusqueda && coincideComunidad
         }
+
+        value = listaFiltrada
     }
+
 
     Box(
         modifier = Modifier
@@ -56,7 +79,22 @@ fun HomeScreen(navController: NavController) {
                 onValueChange = { searchQuery = it },
                 onFilterClick = { /* Lógica de filtro */ }
             )
-
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 16.dp, top = 8.dp, bottom = 8.dp)
+            ) {
+                Checkbox(
+                    checked = filtrarPorComunidad,
+                    onCheckedChange = { filtrarPorComunidad = it },
+                    colors = CheckboxDefaults.colors(checkedColor = Color.White, uncheckedColor = Color.White)
+                )
+                Text(
+                    text = "Filtrar por tu comunidad",
+                    style = MaterialTheme.typography.bodyMedium.copy(color = Color.White)
+                )
+            }
             // Cuadrícula de anuncios o mensaje si no hay resultados
             if (anunciosFiltrados.isEmpty()) {
                 Box(

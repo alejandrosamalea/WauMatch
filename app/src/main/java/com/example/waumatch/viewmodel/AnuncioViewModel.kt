@@ -6,11 +6,10 @@ import android.content.Context
 import android.net.Uri
 import android.util.Log
 import android.widget.Toast
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.cloudinary.android.callback.ErrorInfo
 import com.cloudinary.android.MediaManager
+import com.cloudinary.android.callback.ErrorInfo
 import com.cloudinary.android.callback.UploadCallback
 import com.example.waumatch.data.AnuncioRepository
 import com.example.waumatch.data.local.AnuncioEntity
@@ -27,7 +26,10 @@ import kotlinx.coroutines.tasks.await
 class AnuncioViewModel(application: Application) : AndroidViewModel(application) {
     private val repository: AnuncioRepository
     private val dao = AppDatabase.getDatabase(application).anuncioDao()
-    //    // Flujo de anuncios mapeados a la UI
+
+    var comunidadUsuarioActual: String? = null
+        private set
+
     val anuncios = dao.getAll()
         .map { entities ->
             val user = FirebaseAuth.getInstance().currentUser
@@ -51,12 +53,44 @@ class AnuncioViewModel(application: Application) : AndroidViewModel(application)
     init {
         repository = AnuncioRepository(dao)
         sincronizarDesdeFirebase()
+        cargarComunidadUsuarioActual()
     }
+
+    fun cargarComunidadUsuarioActual() {
+        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
+        FirebaseFirestore.getInstance()
+            .collection("usuarios")
+            .document(uid)
+            .get()
+            .addOnSuccessListener { document ->
+                comunidadUsuarioActual = document.getString("provincia") // o "comunidad"
+            }
+            .addOnFailureListener {
+                Log.e("AnuncioViewModel", "Error al obtener la comunidad del usuario actual", it)
+            }
+    }
+
+    suspend fun perteneceALaComunidadDelUsuario(idCreador: String): Boolean {
+        val comunidadUsuario = comunidadUsuarioActual ?: return false
+
+        return try {
+            val snapshot = FirebaseFirestore.getInstance()
+                .collection("usuarios")
+                .document(idCreador)
+                .get()
+                .await()
+            val comunidadCreador = snapshot.getString("provincia")
+            comunidadCreador == comunidadUsuario
+        } catch (e: Exception) {
+            false
+        }
+    }
+
 
     fun agregarAnuncio(anuncio: AnuncioEntity, context: Context) {
         viewModelScope.launch {
             repository.insert(anuncio)
-            guardarAnuncioEnFirebase(anuncio,context)
+            guardarAnuncioEnFirebase(anuncio, context)
         }
     }
 
@@ -73,9 +107,9 @@ class AnuncioViewModel(application: Application) : AndroidViewModel(application)
                 val anuncioId = anuncio.id
 
                 val nuevosMatchIds = if (matchIds.contains(anuncioId)) {
-                    matchIds - anuncioId // Quitar de favoritos
+                    matchIds - anuncioId
                 } else {
-                    matchIds + anuncioId // Agregar a favoritos
+                    matchIds + anuncioId
                 }
 
                 userDocRef.update("matchIds", nuevosMatchIds).await()
@@ -135,7 +169,6 @@ class AnuncioViewModel(application: Application) : AndroidViewModel(application)
                             esFavorito = matchIds.contains(anuncioId),
                             creador = doc.getString("creador") ?: "",
                             idCreador = doc.getString("idCreador") ?: "",
-
                             imagenes = doc.get("imagenes") as? List<String> ?: listOf()
                         )
                     } catch (e: Exception) {
@@ -200,9 +233,7 @@ class AnuncioViewModel(application: Application) : AndroidViewModel(application)
                             }
                         }
 
-                        override fun onError(requestId: String, @SuppressLint("RestrictedApi") error: ErrorInfo) {
-                        }
-
+                        override fun onError(requestId: String, @SuppressLint("RestrictedApi") error: ErrorInfo) {}
                         override fun onReschedule(requestId: String, @SuppressLint("RestrictedApi") error: ErrorInfo) {}
                     })
                     .dispatch()
@@ -211,8 +242,12 @@ class AnuncioViewModel(application: Application) : AndroidViewModel(application)
             Log.e("Firebase", "Error al obtener el nombre del usuario", exception)
         }
     }
+
     fun getAnuncioById(id: String): Flow<AnuncioEntity?> {
         return anuncios.map { list -> list.find { it.id == id } }
+    }
+    fun obtenerIdUsuarioActual(): String? {
+        return FirebaseAuth.getInstance().currentUser?.uid
     }
 
 }

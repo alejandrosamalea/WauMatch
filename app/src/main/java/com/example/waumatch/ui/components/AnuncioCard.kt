@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.DateRange
+import coil.compose.rememberAsyncImagePainter
 import com.example.waumatch.R
 import com.example.waumatch.data.local.AnuncioEntity
 
@@ -47,7 +48,7 @@ fun AnuncioCard(
     ) {
         Column {
             Image(
-                painter = painterResource(id = R.drawable.perro),
+                painter = rememberAsyncImagePainter(model = anuncio.imagenes.firstOrNull()),
                 contentDescription = "Imagen del anuncio",
                 modifier = Modifier
                     .fillMaxWidth()

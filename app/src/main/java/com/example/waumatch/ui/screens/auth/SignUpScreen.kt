@@ -43,6 +43,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegisterScreen(navController: NavController) {
     var email by remember { mutableStateOf("") }
@@ -56,7 +57,18 @@ fun RegisterScreen(navController: NavController) {
     var errorMessage by remember { mutableStateOf("") }
     val auth = FirebaseAuth.getInstance()
     var db = FirebaseFirestore.getInstance()
+    var provinciaSeleccionada by remember { mutableStateOf("") }
+    var expanded by remember { mutableStateOf(false) }
 
+    val provinciasEspaña = listOf(
+        "Álava", "Albacete", "Alicante", "Almería", "Asturias", "Ávila", "Badajoz",
+        "Barcelona", "Burgos", "Cáceres", "Cádiz", "Cantabria", "Castellón", "Ciudad Real",
+        "Córdoba", "La Coruña", "Cuenca", "Gerona", "Granada", "Guadalajara", "Guipúzcoa",
+        "Huelva", "Huesca", "Islas Baleares", "Jaén", "León", "Lérida", "Lugo", "Madrid",
+        "Málaga", "Murcia", "Navarra", "Orense", "Palencia", "Las Palmas", "Pontevedra",
+        "La Rioja", "Salamanca", "Santa Cruz de Tenerife", "Segovia", "Sevilla", "Soria",
+        "Tarragona", "Teruel", "Toledo", "Valencia", "Valladolid", "Vizcaya", "Zamora", "Zaragoza"
+    )
 
     WauMatchTheme {
         Box(
@@ -158,6 +170,53 @@ fun RegisterScreen(navController: NavController) {
                         unfocusedTextColor = Color.White
                     )
                 )
+                Spacer(modifier = Modifier.height(16.dp))
+
+                ExposedDropdownMenuBox(
+                    expanded = expanded,
+                    onExpandedChange = { expanded = !expanded },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                ) {
+                    OutlinedTextField(
+                        value = provinciaSeleccionada,
+                        onValueChange = { provinciaSeleccionada = it },
+                        readOnly = true,
+                        label = { Text("Provincia", color = Color(0xFF6B7280)) },
+                        trailingIcon = {
+                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+                        },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                            focusedContainerColor = Color(0x14FFFFFF),
+                            unfocusedContainerColor = Color(0x14FFFFFF),
+                            focusedBorderColor = Color(0x1AFFFFFF),
+                            unfocusedBorderColor = Color(0x1AFFFFFF),
+                            focusedLabelColor = Color(0xFF6B7280),
+                            unfocusedLabelColor = Color(0xFF6B7280)
+                        ),
+                        modifier = Modifier
+                            .menuAnchor()
+                            .background(Color(0x14FFFFFF), RoundedCornerShape(12.dp))
+                            .border(1.dp, Color(0x1AFFFFFF), RoundedCornerShape(12.dp))
+                    )
+
+                    ExposedDropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
+                        provinciasEspaña.forEach { provincia ->
+                            DropdownMenuItem(
+                                text = { Text(provincia) },
+                                onClick = {
+                                    provinciaSeleccionada = provincia
+                                    expanded = false
+                                }
+                            )
+                        }
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -264,7 +323,7 @@ fun RegisterScreen(navController: NavController) {
                             auth.createUserWithEmailAndPassword(email, password)
                                 .addOnCompleteListener { task ->
                                     if (task.isSuccessful) {
-                                        crearUsuarioBD(db, email, password, nombre, direccion, auth, telefono)
+                                        crearUsuarioBD(db, email, password, nombre, direccion, auth, telefono, provinciaSeleccionada)
                                         navController.navigate("home")
                                     } else {
                                         errorMessage = task.exception?.message ?: "Ha ocurrido un error al intentar crear la cuenta"
@@ -314,9 +373,9 @@ fun RegisterScreen(navController: NavController) {
 }
 
 @SuppressLint("RestrictedApi")
-fun crearUsuarioBD(bd: FirebaseFirestore, email: String, password: String, nombre: String, direccion: String, auth: FirebaseAuth, telefono: String) {
+fun crearUsuarioBD(bd: FirebaseFirestore, email: String, password: String, nombre: String, direccion: String, auth: FirebaseAuth, telefono: String, provincia: String) {
     val user = FirebaseAuth.getInstance().currentUser
-
+    val imageUrl = generateProfileImageFromName(nombre)
     user?.let {
         val usuarioData = hashMapOf(
             "nombre" to nombre,
@@ -324,6 +383,8 @@ fun crearUsuarioBD(bd: FirebaseFirestore, email: String, password: String, nombr
             "password" to password,
             "direccion" to direccion,
             "telefono" to telefono,
+            "profileImage" to imageUrl,
+            "provincia" to provincia,
             "fechaRegistro" to SimpleDateFormat("MM/yyyy", Locale.getDefault()).format(Date()),
             "favoritos" to emptyList<String>()
         )
@@ -359,4 +420,10 @@ fun validate(email: String, password: String, confirmPassword: String, nombre: S
     var isValid = true
 
     return isValid
+}
+fun generateProfileImageFromName(name: String): String {
+    val firstLetter = name.trim().firstOrNull()?.uppercase() ?: "U"
+    val backgroundColor = "022859"
+    val textColor = "FFFFFF"
+    return "https://ui-avatars.com/api/?name=$firstLetter&background=$backgroundColor&color=$textColor"
 }
