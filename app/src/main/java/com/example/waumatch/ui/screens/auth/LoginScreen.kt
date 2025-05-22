@@ -25,6 +25,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -41,6 +42,7 @@ fun LoginScreen(navController: NavController) {
     var password by remember { mutableStateOf("") }
     var showPassword by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
+    val showResendLink = remember { mutableStateOf(false) }
     val auth = FirebaseAuth.getInstance()
 
     WauMatchTheme {
@@ -182,6 +184,23 @@ fun LoginScreen(navController: NavController) {
                     }
                 }
 
+// ⬇️ Aquí colocas esto:
+                if (showResendLink.value) {
+                    Text(
+                        text = "Reenviar correo de verificación",
+                        color = Color(0xFF2EDFF2),
+                        style = LocalTextStyle.current.copy(textDecoration = TextDecoration.Underline),
+                        modifier = Modifier
+                            .padding(top = 8.dp)
+                            .clickable {
+                                resendVerificationEmail(auth) { error ->
+                                    errorMessage = error
+                                    showResendLink.value = false
+                                }
+                            }
+                    )
+                }
+
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // ¿Olvidaste tu contraseña?
@@ -198,12 +217,18 @@ fun LoginScreen(navController: NavController) {
                 // Botón de inicio de sesión
                 Button(
                     onClick = {
-                        validate(email, password, auth, { errorMessage = it }) { isValid ->
-                            if (isValid) {
-                                navController.navigate("home")
-
+                        validate(
+                            email,
+                            password,
+                            auth,
+                            setErrorMessage = { errorMessage = it },
+                         /*   setShowResendLink = { showResendLink.value = it },*/
+                            onValidationComplete = { isValid ->
+                                if (isValid) {
+                                    navController.navigate("home")
+                                }
                             }
-                        }
+                        )
                     },
                     modifier = Modifier
                         .fillMaxWidth()
@@ -247,6 +272,22 @@ fun LoginScreen(navController: NavController) {
     }
 }
 
+fun resendVerificationEmail(auth: FirebaseAuth, setErrorMessage: (String) -> Unit) {
+    val user = auth.currentUser
+    if (user != null && !user.isEmailVerified) {
+        FirebaseAuth.getInstance().setLanguageCode("es")
+        user.sendEmailVerification()
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    setErrorMessage("Correo de verificación reenviado.")
+                } else {
+                    setErrorMessage("Error al reenviar el correo. Inténtalo más tarde.")
+                }
+            }
+    } else {
+        setErrorMessage("No se puede reenviar el correo. Inicia sesión nuevamente.")
+    }
+}
 fun validate(email: String, password: String, auth: FirebaseAuth, setErrorMessage: (String) -> Unit, onValidationComplete: (Boolean) -> Unit) {
     if (email.isEmpty() || password.isEmpty()) {
         setErrorMessage("Todos los campos son obligatorios")
@@ -264,3 +305,46 @@ fun validate(email: String, password: String, auth: FirebaseAuth, setErrorMessag
             }
         }
 }
+/*
+fun validate(
+    email: String,
+    password: String,
+    auth: FirebaseAuth,
+    setErrorMessage: (String) -> Unit,
+    setShowResendLink: (Boolean) -> Unit,
+    onValidationComplete: (Boolean) -> Unit
+) {
+    if (email.isEmpty() || password.isEmpty()) {
+        setErrorMessage("Todos los campos son obligatorios")
+        setShowResendLink(false)
+        onValidationComplete(false)
+        return
+    }
+
+    auth.signInWithEmailAndPassword(email, password)
+        .addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                val user = auth.currentUser
+                if (user != null && user.isEmailVerified) {
+                    onValidationComplete(true)
+                } else {
+                    // Cambia el idioma del correo de verificación a español
+                    FirebaseAuth.getInstance().setLanguageCode("es")
+
+                    // Enviar correo de verificación
+                    user?.sendEmailVerification()
+
+                    // Mensaje de error y opción de reenviar
+                    setErrorMessage("Verifica tu correo electrónico. Se ha enviado un nuevo enlace.")
+                    setShowResendLink(true)
+
+                    auth.signOut()
+                    onValidationComplete(false)
+                }
+            } else {
+                setErrorMessage("Contraseña o email incorrectos")
+                setShowResendLink(false)
+                onValidationComplete(false)
+            }
+        }
+}*/

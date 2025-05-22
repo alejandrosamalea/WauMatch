@@ -323,8 +323,17 @@ fun RegisterScreen(navController: NavController) {
                             auth.createUserWithEmailAndPassword(email, password)
                                 .addOnCompleteListener { task ->
                                     if (task.isSuccessful) {
-                                        crearUsuarioBD(db, email, password, nombre, direccion, auth, telefono, provinciaSeleccionada)
-                                        navController.navigate("home")
+                                        val user = auth.currentUser
+                                        FirebaseAuth.getInstance().setLanguageCode("es")
+                                        user?.sendEmailVerification()
+                                            ?.addOnCompleteListener { verifyTask ->
+                                                if (verifyTask.isSuccessful) {
+                                                    crearUsuarioBD(db, email, password, nombre, direccion, auth, telefono, provinciaSeleccionada)
+                                                    navController.navigate(NavigationItem.Login.route)
+                                                } else {
+                                                    errorMessage = "Error al enviar el correo de verificación: ${verifyTask.exception?.message}"
+                                                }
+                                            }
                                     } else {
                                         errorMessage = task.exception?.message ?: "Ha ocurrido un error al intentar crear la cuenta"
                                     }

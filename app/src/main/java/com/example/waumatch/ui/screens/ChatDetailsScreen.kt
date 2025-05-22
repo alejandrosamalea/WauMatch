@@ -1,6 +1,7 @@
 package com.example.waumatch.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -94,11 +95,22 @@ fun ChatDetailScreen(
             messagesListener?.remove()
         }
     }
+    var showProfilePopup by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Conversación con ${userName ?: "Cargando..."}") },
+                title = {
+                    Box(
+                        contentAlignment = Alignment.TopEnd
+                    ) {
+                        Text(
+                            text = "${userName ?: "Cargando..."}",
+                            modifier = Modifier
+                                .clickable {  navController.navigate("foreignProfile/$userId") }
+                        )
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = {
                         navController.navigate("chat") {
