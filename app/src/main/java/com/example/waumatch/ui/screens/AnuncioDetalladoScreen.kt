@@ -1,11 +1,15 @@
 package com.example.waumatch.ui.screens
 
 import android.app.Application
+import android.content.Intent
+import android.net.Uri
 import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -22,7 +26,6 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -38,11 +41,11 @@ import com.example.waumatch.ui.screens.Profiles.loadTopReviews
 import com.example.waumatch.ui.theme.AquaLight
 import com.example.waumatch.ui.theme.NightBlue
 import com.example.waumatch.ui.theme.OceanBlue
-import com.example.waumatch.ui.theme.SkyBlue
 import com.example.waumatch.viewmodel.AnuncioViewModel
 import com.example.waumatch.viewmodel.AnuncioViewModelFactory
 import com.example.waumatch.viewmodel.ProfileManager
 import com.google.firebase.auth.FirebaseAuth
+
 
 @Composable
 fun AnuncioDetalladoScreen(
@@ -71,14 +74,12 @@ fun AnuncioDetalladoScreen(
 
     val profileImage = localProfileImage ?: profileData.profileImage.takeIf { it.isNotEmpty() } ?: "https://via.placeholder.com/150"
 
-
     if (anuncio != null) {
         LaunchedEffect(anuncio.idCreador) {
-            loadTopReviews(anuncio.idCreador, { fetchedReviews ->
+            loadTopReviews(anuncio.idCreador) { fetchedReviews ->
                 reviews = fetchedReviews
-            })
+            }
         }
-
     }
 
     if (anuncio == null) {
@@ -100,18 +101,51 @@ fun AnuncioDetalladoScreen(
                     .verticalScroll(rememberScrollState())
                     .padding(bottom = 80.dp)
             ) {
+                // Carrusel de imágenes
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(450.dp)
                 ) {
-                    Image(
-                        painter = rememberAsyncImagePainter(model = anuncio.imagenes.firstOrNull()),
-                        contentDescription = "Imagen del anuncio",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
+                    val images = anuncio.imagenes.ifEmpty { listOf("https://via.placeholder.com/150") }
+                    val pagerState = rememberPagerState(pageCount = { images.size })
 
+                    HorizontalPager(
+                        state = pagerState,
+                        modifier = Modifier.fillMaxSize()
+                    ) { page ->
+                        Image(
+                            painter = rememberAsyncImagePainter(model = images[page]),
+                            contentDescription = "Imagen del anuncio ${page + 1}",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+
+                    // Indicador de puntos
+                    if (images.size > 1) {
+                        Row(
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .padding(bottom = 8.dp),
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            repeat(images.size) { index ->
+                                Box(
+                                    modifier = Modifier
+                                        .padding(horizontal = 4.dp)
+                                        .size(8.dp)
+                                        .clip(CircleShape)
+                                        .background(
+                                            if (pagerState.currentPage == index) Color.White
+                                            else Color.White.copy(alpha = 0.4f)
+                                        )
+                                )
+                            }
+                        }
+                    }
+
+                    // Botón de volver
                     IconButton(
                         onClick = onBackClick,
                         modifier = Modifier
@@ -126,6 +160,7 @@ fun AnuncioDetalladoScreen(
                         )
                     }
 
+                    // Botones de favorito y compartir
                     Row(
                         modifier = Modifier
                             .align(Alignment.TopEnd)
@@ -159,6 +194,7 @@ fun AnuncioDetalladoScreen(
                     }
                 }
 
+                // Resto del contenido
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -226,7 +262,7 @@ fun AnuncioDetalladoScreen(
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = averageRating + " (" + (if (reviewCount == 1) "$reviewCount valoracion" else "$reviewCount valoraciones") + ")",
+                                    text = "$averageRating ($reviewCount ${if (reviewCount == 1) "valoración" else "valoraciones"})",
                                     style = MaterialTheme.typography.bodySmall.copy(color = Color.White)
                                 )
                             }
@@ -274,6 +310,7 @@ fun AnuncioDetalladoScreen(
                 }
             }
 
+            // Botón de contactar
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -286,7 +323,7 @@ fun AnuncioDetalladoScreen(
                     modifier = Modifier.padding(horizontal = 16.dp)
                 )
                 Button(
-                    onClick = {navController.navigate("chatDetail/${anuncio.idCreador}")},
+                    onClick = { navController.navigate("chatDetail/${anuncio.idCreador}") },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp)
@@ -308,5 +345,3 @@ fun AnuncioDetalladoScreen(
         }
     }
 }
-
-

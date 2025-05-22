@@ -10,6 +10,7 @@ import com.cloudinary.android.callback.ErrorInfo;
 import com.cloudinary.android.callback.UploadCallback;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.IgnoreExtraProperties;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -49,6 +50,7 @@ public class ProfileManager extends ViewModel {
         }
     }
 
+    @IgnoreExtraProperties
     public static class ProfileData {
         private String profileImage = "";
         private String name = "";
