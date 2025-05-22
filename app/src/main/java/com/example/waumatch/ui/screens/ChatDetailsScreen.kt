@@ -1,10 +1,8 @@
 package com.example.waumatch.ui.screens
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -16,20 +14,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.example.waumatch.R
 import com.example.waumatch.viewmodel.ChatViewModel
 import com.example.waumatch.viewmodel.Message
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.first
 import java.text.SimpleDateFormat
 import java.util.Locale
 import androidx.compose.ui.platform.LocalConfiguration
@@ -50,9 +43,12 @@ fun ChatDetailScreen(
     val messages = remember { mutableStateListOf<MessageWithId>() }
     var messageText by remember { mutableStateOf("") }
     var userName by remember { mutableStateOf<String?>(null) }
+    var messagesListener by remember { mutableStateOf<ListenerRegistration?>(null) }
+    val chatId by viewModel.chatIdWithUser.collectAsState()
+
+    val db = FirebaseFirestore.getInstance()
 
     LaunchedEffect(userId) {
-        val db = FirebaseFirestore.getInstance()
         db.collection("usuarios")
             .document(userId)
             .get()
@@ -68,26 +64,34 @@ fun ChatDetailScreen(
         viewModel.loadChatWithUser(userId)
     }
 
-    val chatId by viewModel.chatIdWithUser.collectAsState()
-
-    LaunchedEffect(chatId) {
-        if (chatId != null) {
-            FirebaseFirestore.getInstance()
-                .collection("chats")
-                .document(chatId!!)
-                .collection("messages")
-                .orderBy("timestamp", Query.Direction.ASCENDING)
-                .addSnapshotListener { snapshot, error ->
-                    if (error == null && snapshot != null) {
-                        messages.clear()
-                        for (doc in snapshot.documents) {
-                            val message = doc.toObject(Message::class.java)
-                            if (message != null) {
-                                messages.add(MessageWithId(doc.id, message))
-                            }
+    fun subscribeToMessages(chatId: String) {
+        messagesListener?.remove()
+        messagesListener = db.collection("chats")
+            .document(chatId)
+            .collection("messages")
+            .orderBy("timestamp", Query.Direction.ASCENDING)
+            .addSnapshotListener { snapshot, error ->
+                if (error == null && snapshot != null) {
+                    messages.clear()
+                    for (doc in snapshot.documents) {
+                        val message = doc.toObject(Message::class.java)
+                        if (message != null) {
+                            messages.add(MessageWithId(doc.id, message))
                         }
                     }
                 }
+            }
+    }
+
+    LaunchedEffect(chatId) {
+        if (chatId != null) {
+            subscribeToMessages(chatId!!)
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            messagesListener?.remove()
         }
     }
 
@@ -122,7 +126,7 @@ fun ChatDetailScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(16.dp)
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
                 LazyColumn(
                     modifier = Modifier.weight(1f)
@@ -179,7 +183,7 @@ fun ChatDetailScreen(
                                         .shadow(
                                             elevation = 4.dp,
                                             shape = MaterialTheme.shapes.medium,
-                                            clip = false // Deja el borde suave fuera del clip
+                                            clip = false
                                         )
                                 ) {
                                     Box(
@@ -207,13 +211,10 @@ fun ChatDetailScreen(
                                         }
                                     }
                                 }
-
                             }
                         }
                     }
                 }
-
-
 
                 Row(
                     modifier = Modifier
@@ -233,7 +234,6 @@ fun ChatDetailScreen(
                             .shadow(4.dp, shape = RoundedCornerShape(20.dp)),
                         colors = TextFieldDefaults.textFieldColors(
                             containerColor = Color(0xFF2A4F63),
-
                             focusedIndicatorColor = Color.Transparent,
                             unfocusedIndicatorColor = Color.Transparent,
                             cursorColor = Color.White
@@ -247,11 +247,12 @@ fun ChatDetailScreen(
                     Button(
                         onClick = {
                             if (messageText.isNotBlank()) {
-                                viewModel.sendMessage(userId, messageText)
+                                viewModel.sendMessage(userId, messageText) { newChatId ->
+                                    subscribeToMessages(newChatId)
+                                }
                                 messageText = ""
                             }
                         },
-
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00B4D8)),
                         shape = RoundedCornerShape(16.dp),
                         modifier = Modifier
