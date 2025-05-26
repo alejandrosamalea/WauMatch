@@ -484,6 +484,60 @@ fun ProfileScreen(navController: NavController, viewModel: ProfileManager = view
             }
         }
         item {
+            var expanded by remember { mutableStateOf(false) }
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 10.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "Mis Mascotas",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = ComposeColor.White
+                    )
+                    Box {
+                        IconButton(onClick = { expanded = true }) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = "Añadir mascota",
+                                tint = ComposeColor(0xFF2EDFF2)
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = expanded,
+                            onDismissRequest = { expanded = false },
+                            modifier = Modifier
+                                .background(ComposeColor(0xFF1A1EB7D9))
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Agregar mascota", color = ComposeColor.White) },
+                                onClick = {
+                                    expanded = false
+                                    navController.navigate("anadirMascota")
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Gestionar mascotas", color = ComposeColor.White) },
+                                onClick = {
+                                    expanded = false
+                                    navController.navigate("adminMascota")
+
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        item {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()

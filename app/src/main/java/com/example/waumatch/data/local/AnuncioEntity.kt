@@ -14,6 +14,8 @@ data class AnuncioEntity(
     val esFavorito: Boolean = false,
     val creador: String,
     val idCreador: String,
-    val imagenes: List<String>
+    val imagenes: List<String>,
+    val tipo: String,
+    val mascotasIds: List<String>
 )
 

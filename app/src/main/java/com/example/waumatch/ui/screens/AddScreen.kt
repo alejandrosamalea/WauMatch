@@ -40,7 +40,9 @@ import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 import java.text.SimpleDateFormat
 import androidx.compose.material.icons.outlined.Image
+import com.example.waumatch.ui.components.Mascota
 import com.example.waumatch.ui.screens.Profiles.ProfileManagerFactory
+import com.google.firebase.firestore.toObject
 import java.util.*
 
 @Composable
@@ -60,6 +62,9 @@ fun AddScreen(navController: NavController) {
     val MAX_TITULO = 30
     val MAX_DESCRIPCION = 250
     val imageUris = remember { mutableStateListOf<String?>(null, null, null) }
+    val mascotas = remember { mutableStateListOf<Mascota>() }
+    val mascotasSeleccionadas = remember { mutableStateListOf<String>() }
+    var tipoAnuncio by remember { mutableStateOf("Dueño") }
 
     val db = FirebaseFirestore.getInstance()
     val auth = FirebaseAuth.getInstance()
@@ -90,6 +95,14 @@ fun AddScreen(navController: NavController) {
         if (userId.isNotBlank()) {
             val db = FirebaseFirestore.getInstance()
             val userRef = db.collection("usuarios").document(userId)
+            val mascotasSnapshot = db.collection("mascotas").document(userId).collection("lista").get().await()
+
+            mascotas.clear()
+            mascotas.addAll(
+                mascotasSnapshot.documents.mapNotNull {
+                    doc -> doc.toObject(Mascota::class.java)?.copy(id = doc.id)
+                }
+            )
             try {
                 val userDocument = userRef.get().await()
                 val nombreUsuario = userDocument.getString("nombre") ?: "Usuario Anónimo"
@@ -105,6 +118,7 @@ fun AddScreen(navController: NavController) {
 
     val pickImageLaunchers = List(3) { index ->
         rememberLauncherForActivityResult(
+
             contract = ActivityResultContracts.PickVisualMedia()
         ) { uri ->
             uri?.let {
@@ -152,6 +166,38 @@ fun AddScreen(navController: NavController) {
                 ),
                 modifier = Modifier.padding(bottom = 24.dp)
             )
+            Text(
+                text = "Tipo de anuncio*",
+                style = MaterialTheme.typography.titleMedium.copy(color = Color.White),
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 24.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                listOf("Dueño", "Paseador").forEach { tipo ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .padding(end = 16.dp)
+                            .clickable { tipoAnuncio = tipo }
+                    ) {
+                        RadioButton(
+                            selected = tipoAnuncio == tipo,
+                            onClick = { tipoAnuncio = tipo },
+                            colors = RadioButtonDefaults.colors(selectedColor = Color.White)
+                        )
+                        Text(
+                            text = tipo,
+                            color = Color.White,
+                            modifier = Modifier.padding(start = 4.dp)
+                        )
+                    }
+                }
+            }
 
             Row(
                 modifier = Modifier
@@ -257,6 +303,49 @@ fun AddScreen(navController: NavController) {
             )
 
             Spacer(modifier = Modifier.height(24.dp))
+            if (tipoAnuncio == "Dueño") {
+                Text(
+                    text = "Selecciona las mascotas para este anuncio",
+                    style = MaterialTheme.typography.titleMedium.copy(color = Color.White),
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                if (mascotas.size > 0) {
+                    mascotas.forEach { mascota ->
+                        val seleccionada = mascotasSeleccionadas.contains(mascota.id)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    if (seleccionada) mascotasSeleccionadas.remove(mascota.id)
+                                    else mascotasSeleccionadas.add(mascota.id)
+                                }
+                                .padding(vertical = 4.dp)
+                                .background(
+                                    if (seleccionada) Color(0xFFB3E5FC) else Color.White,
+                                    shape = RoundedCornerShape(8.dp)
+                                )
+                                .padding(12.dp)
+                        ) {
+                            Text(
+                                text = mascota.nombre,
+                                color = Color.Black,
+                                fontSize = 12.sp,
+                            )
+                        }
+                    }
+                } else {
+                    Text(
+                        text = "Actualmente no tienes mascotas registradas, hazlo en tu perfil",
+                        color = Color.Black,
+                        fontSize = 16.sp,
+                    )
+                }
+
+
+                Spacer(modifier = Modifier.height(24.dp))
+            }
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -338,7 +427,9 @@ fun AddScreen(navController: NavController) {
                         creador = creador,
                         idCreador = idCreador,
                         esFavorito = false,
-                        imagenes = imageUris.filterNotNull()
+                        imagenes = imageUris.filterNotNull(),
+                        tipo = tipoAnuncio,
+                        mascotasIds = mascotasSeleccionadas.toList()
                     )
 
                     viewModel.agregarAnuncio(nuevoAnuncio, context2)

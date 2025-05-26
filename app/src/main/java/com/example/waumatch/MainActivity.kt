@@ -18,11 +18,14 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.waumatch.auth.LoginScreen
 import com.example.waumatch.auth.RegisterScreen
+import com.example.waumatch.ui.components.WauMatchHeader
 import com.example.waumatch.ui.navigation.MainNavigationBar
 import com.example.waumatch.ui.navigation.NavigationItem
 import com.example.waumatch.ui.screens.*
 import com.example.waumatch.ui.screens.Profiles.ForeignProfileScreen
 import com.example.waumatch.ui.screens.Profiles.ProfileScreen
+import com.example.waumatch.ui.screens.mascotas.AdminMascota
+import com.example.waumatch.ui.screens.mascotas.AnadirMascota
 import com.example.waumatch.ui.theme.WauMatchTheme
 import com.example.waumatch.viewmodel.CloudinaryManager
 import com.google.firebase.auth.FirebaseAuth
@@ -53,7 +56,7 @@ class MainActivity : ComponentActivity() {
                     bottomBar = {
                         if (selectedDestination != NavigationItem.Login.route && selectedDestination != NavigationItem.Registrar.route && selectedDestination != NavigationItem.Recuperar.route
                             && selectedDestination != NavigationItem.Add.route && selectedDestination != NavigationItem.ForeignProfile.route && selectedDestination != NavigationItem.AnuncioDetallado.route
-                            && selectedDestination != NavigationItem.allReviews.route)
+                            && selectedDestination != NavigationItem.allReviews.route && selectedDestination != NavigationItem.anadirMascota.route && selectedDestination != NavigationItem.AdminMascota.route )
                         {
                             MainNavigationBar(navController)
                         }
@@ -138,6 +141,17 @@ class MainActivity : ComponentActivity() {
                                 onBackClick = { navController.popBackStack() }
                             )
                         }
+                        composable(NavigationItem.anadirMascota.route) {
+                            AnadirMascota(
+                                navController = navController
+                            )
+                        }
+                        composable(NavigationItem.AdminMascota.route) {
+                            AdminMascota(
+                                navController = navController
+                            )
+                        }
+
                     }
                 }
             }

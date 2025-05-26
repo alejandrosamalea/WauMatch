@@ -19,5 +19,7 @@ sealed class NavigationItem(
     object ForeignProfile : NavigationItem("foreignProfile/{userId}", R.drawable.profile, "ForeignProfile")
     object AnuncioDetallado : NavigationItem("anuncioDetallado/{anuncioId}", R.drawable.perro, "AnuncioDetallado")
     object allReviews : NavigationItem("allReviews/{userId}", R.drawable.perro, "allReviews")
+    object anadirMascota : NavigationItem("anadirMascota", R.drawable.add, "Agregar Mascota")
+    object AdminMascota : NavigationItem("adminMascota", R.drawable.profile, "Gestionar Mascotas")
 
 }

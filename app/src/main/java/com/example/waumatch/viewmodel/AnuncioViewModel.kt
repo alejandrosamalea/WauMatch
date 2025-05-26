@@ -44,7 +44,9 @@ class AnuncioViewModel(application: Application) : AndroidViewModel(application)
                     creador = entity.creador,
                     idCreador = entity.idCreador,
                     esFavorito = entity.esFavorito,
-                    imagenes = entity.imagenes
+                    imagenes = entity.imagenes,
+                    tipo = entity.tipo,
+                    mascotasIds = entity.mascotasIds
                 )
             }
         }
@@ -123,7 +125,9 @@ class AnuncioViewModel(application: Application) : AndroidViewModel(application)
                     esFavorito = nuevosMatchIds.contains(anuncioId),
                     creador = anuncio.creador,
                     idCreador = anuncio.idCreador,
-                    imagenes = anuncio.imagenes
+                    imagenes = anuncio.imagenes,
+                    tipo = anuncio.tipo,
+                    mascotasIds = anuncio.mascotasIds
                 )
                 repository.actualizarAnuncio(actualizado)
 
@@ -169,7 +173,10 @@ class AnuncioViewModel(application: Application) : AndroidViewModel(application)
                             esFavorito = matchIds.contains(anuncioId),
                             creador = doc.getString("creador") ?: "",
                             idCreador = doc.getString("idCreador") ?: "",
-                            imagenes = doc.get("imagenes") as? List<String> ?: listOf()
+                            imagenes = doc.get("imagenes") as? List<String> ?: listOf(),
+                            tipo = doc.getString("tipo") ?: "",
+                            mascotasIds = doc.get("mascotasIds") as? List<String> ?: listOf()
+
                         )
                     } catch (e: Exception) {
                         null
@@ -220,7 +227,9 @@ class AnuncioViewModel(application: Application) : AndroidViewModel(application)
                                     "fechaFin" to anuncio.fechaFin,
                                     "creador" to userName,
                                     "idCreador" to anuncio.idCreador,
-                                    "imagenes" to uploadedImageUrls
+                                    "imagenes" to uploadedImageUrls,
+                                    "tipos" to anuncio.tipo,
+                                    "mascotasIds" to anuncio.mascotasIds
                                 )
 
                                 db.collection("anuncios").add(anuncioMap)
