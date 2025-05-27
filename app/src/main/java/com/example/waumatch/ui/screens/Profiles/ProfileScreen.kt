@@ -30,8 +30,10 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color as ComposeColor
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
@@ -47,6 +49,9 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.waumatch.MainActivity
+import com.example.waumatch.R
+import com.example.waumatch.ui.components.Mascota
+import kotlinx.coroutines.tasks.await
 
 @Composable
 fun ProfileScreen(navController: NavController, viewModel: ProfileManager = viewModel(factory = ProfileManagerFactory(LocalContext.current))) {
@@ -484,7 +489,29 @@ fun ProfileScreen(navController: NavController, viewModel: ProfileManager = view
             }
         }
         item {
-            var expanded by remember { mutableStateOf(false) }
+            val mascotas = remember { mutableStateListOf<Mascota>() }
+            val userId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
+
+            LaunchedEffect(userId) {
+                if (userId.isNotBlank()) {
+                    val db = FirebaseFirestore.getInstance()
+                    try {
+                        val mascotasSnapshot = db.collection("mascotas")
+                            .document(userId)
+                            .collection("lista")
+                            .get()
+                            .await()
+                        mascotas.clear()
+                        mascotas.addAll(
+                            mascotasSnapshot.documents.mapNotNull { doc ->
+                                doc.toObject(Mascota::class.java)?.copy(id = doc.id)
+                            }
+                        )
+                    } catch (e: Exception) {
+                        Log.e("ProfileScreen", "Error al cargar mascotas: ${e.message}")
+                    }
+                }
+            }
 
             Column(
                 modifier = Modifier
@@ -503,6 +530,7 @@ fun ProfileScreen(navController: NavController, viewModel: ProfileManager = view
                         color = ComposeColor.White
                     )
                     Box {
+                        var expanded by remember { mutableStateOf(false) }
                         IconButton(onClick = { expanded = true }) {
                             Icon(
                                 imageVector = Icons.Default.Add,
@@ -513,8 +541,7 @@ fun ProfileScreen(navController: NavController, viewModel: ProfileManager = view
                         DropdownMenu(
                             expanded = expanded,
                             onDismissRequest = { expanded = false },
-                            modifier = Modifier
-                                .background(ComposeColor(0xFF1A1EB7D9))
+                            modifier = Modifier.background(ComposeColor(0xFF1A1EB7D9))
                         ) {
                             DropdownMenuItem(
                                 text = { Text("Agregar mascota", color = ComposeColor.White) },
@@ -528,11 +555,68 @@ fun ProfileScreen(navController: NavController, viewModel: ProfileManager = view
                                 onClick = {
                                     expanded = false
                                     navController.navigate("adminMascota")
-
                                 }
                             )
                         }
                     }
+                }
+
+                if (mascotas.isNotEmpty()) {
+                    LazyRow(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(mascotas) { mascota ->
+                            Column(
+                                modifier = Modifier
+                                    .width(100.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(
+                                        color = ComposeColor(0x1A1EB7D9),
+                                        shape = RoundedCornerShape(12.dp)
+                                    )
+                                    .clickable {
+                                        navController.navigate("adminMascota")
+                                    }
+                                    .padding(8.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Image(
+                                    painter = rememberAsyncImagePainter(
+                                        model = if (mascota.imagenes.isNotEmpty()) mascota.imagenes[0] else "https://via.placeholder.com/80",
+                                        placeholder = painterResource(id = R.drawable.profile) // Asegúrate de tener un placeholder en tus recursos
+                                    ),
+                                    contentDescription = "${mascota.nombre} image",
+                                    modifier = Modifier
+                                        .size(60.dp)
+                                        .clip(CircleShape)
+                                        .border(1.dp, ComposeColor(0xFF2EDFF2), CircleShape),
+                                    contentScale = ContentScale.Crop
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = mascota.nombre,
+                                    color = ComposeColor.White,
+                                    fontSize = 14.sp,
+                                    textAlign = TextAlign.Center,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    Text(
+                        text = "No tienes mascotas registradas",
+                        color = ComposeColor.White,
+                        fontSize = 16.sp,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                        textAlign = TextAlign.Center
+                    )
                 }
             }
         }
