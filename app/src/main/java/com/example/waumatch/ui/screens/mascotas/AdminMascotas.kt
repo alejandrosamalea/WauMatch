@@ -1,11 +1,11 @@
 package com.example.waumatch.ui.screens.mascotas
 
-import android.util.Log
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
@@ -13,12 +13,18 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import coil.compose.rememberAsyncImagePainter
+import coil.compose.AsyncImage
 import com.example.waumatch.data.MascotaRepository
 import com.example.waumatch.ui.components.Mascota
+import com.example.waumatch.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -30,67 +36,129 @@ fun AdminMascota(
 
     LaunchedEffect(Unit) {
         repository.obtenerMascotasDelUsuario(
-            onSuccess = {
-                mascotas = it
-                Log.i("ADMIN", "ENTRO MI LOCO")
-                Log.i("ADMIN", it.size.toString())
-
-            },
-            onError = { Log.e("ManagePets", "Error", it) }
+            onSuccess = { mascotas = it },
+            onError = { android.util.Log.e("ManagePets", "Error", it) }
         )
     }
 
-    Column {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(OceanBlue, SkyBlue)
+                )
+            )
+    ) {
         TopAppBar(
-            title = { Text("Mis Mascotas") },
+            title = {
+                Text(
+                    "Mis Mascotas",
+                    color = Color.White,
+                    style = MaterialTheme.typography.headlineSmall
+                )
+            },
             navigationIcon = {
                 IconButton(onClick = { navController.navigate("profile") }) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
+                    Icon(
+                        Icons.Default.ArrowBack,
+                        contentDescription = "Volver",
+                        tint = Color.White
+                    )
                 }
-            }
+            },
+            colors = TopAppBarDefaults.topAppBarColors(
+                containerColor = NightBlue,
+                titleContentColor = Color.White,
+                navigationIconContentColor = Color.White
+            )
         )
 
         if (mascotas.isEmpty()) {
             Box(
                 modifier = Modifier
-                    .fillMaxSize(),
+                    .fillMaxSize()
+                    .background(OceanBlue.copy(alpha = 0.8f)),
                 contentAlignment = Alignment.Center
             ) {
-                Text(text = "Actualmente no tienes mascotas registradas")
+                Text(
+                    text = "Actualmente no tienes mascotas registradas",
+                    color = Color.White,
+                    style = MaterialTheme.typography.bodyLarge
+                )
             }
         } else {
-            LazyColumn {
+            LazyColumn(
+                modifier = Modifier.padding(16.dp)
+            ) {
                 items(mascotas) { mascota ->
-                    Card(
+                    ElevatedCard(
                         modifier = Modifier
-                            .padding(8.dp)
                             .fillMaxWidth()
+                            .padding(vertical = 8.dp)
+                            .shadow(6.dp, RoundedCornerShape(12.dp)),
+                        colors = CardDefaults.elevatedCardColors(
+                            containerColor = DeepNavy
+                        )
                     ) {
-                        Column(Modifier.padding(16.dp)) {
-                            Image(
-                                painter = rememberAsyncImagePainter(model = mascota.imagenes.firstOrNull()),
-                                contentDescription = "Imagen del anuncio",
+                        Column(
+                            modifier = Modifier.padding(16.dp)
+                        ) {
+                            AsyncImage(
+                                model = mascota.imagenes.firstOrNull() ?: "https://via.placeholder.com/150",
+                                contentDescription = "Imagen de la mascota",
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(150.dp),
-                                contentScale = ContentScale.Crop
+                                    .height(150.dp)
+                                    .clip(RoundedCornerShape(8.dp)),
+                                contentScale = ContentScale.Crop,
+                                placeholder = painterResource(android.R.drawable.ic_menu_gallery),
+                                error = painterResource(android.R.drawable.ic_menu_gallery)
                             )
-                            Text("Nombre: ${mascota.nombre}")
-                            Text("Especie: ${mascota.especie}")
-                            Text("Raza: ${mascota.raza}")
-                            Text("Edad: ${mascota.edad}")
-                            Row {
-                                Spacer(modifier = Modifier.weight(1f))
-                                IconButton(onClick = {
-                                    repository.eliminarMascota(mascota.id,
-                                        onSuccess = {
-                                            Log.w("ADMIN", "bien-------------------------------------------------")
-                                            mascotas = mascotas.filterNot { it.id == mascota.id }
-                                        },
-                                        onError = { Log.e("ManagePets", "Error", it) }
+                            Text(
+                                text = "Nombre: ${mascota.nombre}",
+                                color = Color.White,
+                                style = MaterialTheme.typography.bodyLarge,
+                                modifier = Modifier.padding(top = 8.dp)
+                            )
+                            Text(
+                                text = "Especie: ${mascota.especie}",
+                                color = Color.White,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Text(
+                                text = "Raza: ${mascota.raza}",
+                                color = Color.White,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Text(
+                                text = "Edad: ${mascota.edad}",
+                                color = Color.White,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.End
+                            ) {
+                                IconButton(
+                                    onClick = {
+                                        repository.eliminarMascota(
+                                            mascota.id,
+                                            onSuccess = {
+                                                mascotas = mascotas.filterNot { it.id == mascota.id }
+                                            },
+                                            onError = { android.util.Log.e("ManagePets", "Error", it) }
+                                        )
+                                    },
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .background(AquaLight, RoundedCornerShape(8.dp))
+                                ) {
+                                    Icon(
+                                        Icons.Default.Delete,
+                                        contentDescription = "Eliminar",
+                                        tint = Color.White
                                     )
-                                }) {
-                                    Icon(Icons.Default.Delete, contentDescription = "Eliminar")
                                 }
                             }
                         }

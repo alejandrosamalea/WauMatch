@@ -11,9 +11,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import android.net.Uri
-import android.util.Log
-import androidx.activity.result.PickVisualMediaRequest
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -27,21 +26,27 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.waumatch.data.MascotaRepository
 import com.example.waumatch.ui.components.Mascota
+import com.example.waumatch.ui.theme.*
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
-import java.util.UUID
+import android.widget.Toast
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.compose.ui.platform.LocalContext
+import com.cloudinary.android.MediaManager
+import com.cloudinary.android.callback.UploadCallback
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AnadirMascota(navController: NavController) {
     val userId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
     val repository = MascotaRepository()
-
     var nombre by remember { mutableStateOf("") }
     var especie by remember { mutableStateOf("") }
     var raza by remember { mutableStateOf("") }
@@ -70,7 +75,6 @@ fun AnadirMascota(navController: NavController) {
     val imageUris = remember { mutableStateListOf<String?>(null, null, null) }
     val pickImageLaunchers = List(3) { index ->
         rememberLauncherForActivityResult(
-
             contract = ActivityResultContracts.PickVisualMedia()
         ) { uri ->
             uri?.let {
@@ -79,35 +83,76 @@ fun AnadirMascota(navController: NavController) {
         }
     }
     var adicional by remember { mutableStateOf("") }
-
-
-    Column(modifier = Modifier.fillMaxSize()) {
+    var isSaving by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(OceanBlue, SkyBlue)
+                )
+            )
+    ) {
         TopAppBar(
-            title = { Text("Agregar Mascota") },
+            title = {
+                Text(
+                    "Agregar Mascota",
+                    color = Color.White,
+                    style = MaterialTheme.typography.headlineSmall
+                )
+            },
             navigationIcon = {
                 IconButton(onClick = { navController.popBackStack() }) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
+                    Icon(
+                        Icons.Default.ArrowBack,
+                        contentDescription = "Volver",
+                        tint = Color.White
+                    )
                 }
-            }
+            },
+            colors = TopAppBarDefaults.topAppBarColors(
+                containerColor = NightBlue,
+                titleContentColor = Color.White,
+                navigationIconContentColor = Color.White
+            )
         )
-
         Column(
             modifier = Modifier
                 .padding(16.dp)
                 .verticalScroll(rememberScrollState())
         ) {
-            ExpandableSection("Información básica") {
-                TextField(nombre, { nombre = it }, label = "Nombre")
+            ExpandableSection(
+                title = "Información básica",
+                showMandatory = true
+            ) {
+                TextField(
+                    value = nombre,
+                    onValueChange = { nombre = it },
+                    label = "Nombre",
+                    isMandatory = true
+                )
                 DropdownSelector(
                     label = "Especie",
                     options = listOf("Perro", "Gato", "Conejo", "Ave", "Hámster"),
                     selectedOption = especie,
-                    onOptionSelected = { especie = it }
+                    onOptionSelected = { especie = it },
+                    isMandatory = true
                 )
-                TextField(raza, { raza = it }, label = "Raza")
-                TextField(edad, { edad = it }, label = "Edad", keyboardType = KeyboardType.Number)
+                TextField(
+                    value = raza,
+                    onValueChange = { raza = it },
+                    label = "Raza",
+                    isMandatory = true
+                )
+                TextField(
+                    value = edad,
+                    onValueChange = { edad = it },
+                    label = "Edad",
+                    keyboardType = KeyboardType.Number,
+                    isMandatory = true
+                )
             }
-
             ExpandableSection("Imágenes de la mascota") {
                 Row(
                     modifier = Modifier
@@ -116,13 +161,21 @@ fun AnadirMascota(navController: NavController) {
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     repeat(3) { index ->
-                        Log.w("INFO ADMIN","os odio")
                         Box(
                             modifier = Modifier
                                 .weight(1f)
                                 .aspectRatio(1f)
                                 .padding(horizontal = 4.dp)
-                                .background(Color.White, RoundedCornerShape(8.dp))
+                                .shadow(4.dp, RoundedCornerShape(8.dp))
+                                .background(
+                                    color = NightBlue.copy(alpha = 0.9f),
+                                    shape = RoundedCornerShape(8.dp)
+                                )
+                                .border(
+                                    width = if (imageUris[index] != null) 2.dp else 0.dp,
+                                    color = SkyBlue,
+                                    shape = RoundedCornerShape(8.dp)
+                                )
                         ) {
                             Column(
                                 modifier = Modifier
@@ -148,14 +201,14 @@ fun AnadirMascota(navController: NavController) {
                                     Icon(
                                         Icons.Outlined.Image,
                                         contentDescription = "Añadir imagen",
-                                        tint = Color(0xFF666666),
+                                        tint = Color.White,
                                         modifier = Modifier.size(24.dp)
                                     )
                                 }
                                 if (index == 0) {
                                     Text(
                                         text = "Foto principal",
-                                        color = Color(0xFF666666),
+                                        color = Color.White,
                                         fontSize = 12.sp,
                                         modifier = Modifier.padding(top = 4.dp)
                                     )
@@ -165,53 +218,42 @@ fun AnadirMascota(navController: NavController) {
                     }
                 }
             }
-
-
             ExpandableSection("Rutinas diarias") {
                 TextField(horariosComida, { horariosComida = it }, label = "Horarios de comida")
                 TextField(tipoComida, { tipoComida = it }, label = "Dosis y tipo de comida")
                 TextField(ritualesComida, { ritualesComida = it }, label = "Rituales al comer")
             }
-
             ExpandableSection("Descanso") {
                 TextField(lugarDormir, { lugarDormir = it }, label = "¿Dónde duerme?")
                 TextField(horarioDormir, { horarioDormir = it }, label = "¿Tiene horario para dormir?")
             }
-
             ExpandableSection("Hábitos de higiene") {
                 TextField(habitosHigiene, { habitosHigiene = it }, label = "¿Hace pipí/caca en casa?")
                 TextField(frecuenciaPaseo, { frecuenciaPaseo = it }, label = "¿Cada cuánto se le saca?")
             }
-
             ExpandableSection("Limpieza") {
                 TextField(limpieza, { limpieza = it }, label = "¿Hay que bañarlo o cepillarlo?")
                 TextField(productosEspeciales, { productosEspeciales = it }, label = "¿Usa productos especiales?")
             }
-
             ExpandableSection("Juguetes y entretenimiento") {
                 TextField(juguetesFavoritos, { juguetesFavoritos = it }, label = "Juguetes favoritos")
             }
-
             ExpandableSection("Salud y emergencias") {
                 TextField(medicacion, { medicacion = it }, label = "¿Toma medicación?")
                 TextField(veterinario, { veterinario = it }, label = "Veterinario de confianza")
             }
-
             ExpandableSection("Restricciones") {
                 TextField(restricciones, { restricciones = it }, label = "Lugares prohibidos")
                 TextField(accionesNoToleradas, { accionesNoToleradas = it }, label = "Acciones que no tolera")
             }
-
             ExpandableSection("Durante ausencias") {
                 TextField(puedeQuedarseSolo, { puedeQuedarseSolo = it }, label = "¿Puede quedarse solo?")
                 TextField(ansiedadSeparacion, { ansiedadSeparacion = it }, label = "¿Tiene ansiedad por separación?")
             }
-
             ExpandableSection("Seguridad en casa") {
                 TextField(escapa, { escapa = it }, label = "¿Escapa si la puerta está abierta?")
                 TextField(habitacionesRestringidas, { habitacionesRestringidas = it }, label = "Habitaciones restringidas")
             }
-
             ExpandableSection("Datos del dueño") {
                 TextField(telefonoDuenio, { telefonoDuenio = it }, label = "Teléfono")
                 TextField(correoDuenio, { correoDuenio = it }, label = "Correo")
@@ -223,56 +265,136 @@ fun AnadirMascota(navController: NavController) {
             Spacer(Modifier.height(24.dp))
             Button(
                 onClick = {
+                    if (isSaving) return@Button
                     if (nombre.isBlank() || especie.isBlank() || raza.isBlank() || edad.isBlank()) {
-                        Log.e("Validación", "Faltan campos obligatorios")
+                        Toast.makeText(context, "Por favor, completa todos los campos obligatorios", Toast.LENGTH_SHORT).show()
                         return@Button
                     }
+                    isSaving = true
                     val mascotaId = FirebaseFirestore.getInstance().collection("mascotas").document(userId).collection("lista").document().id
-                    val mascota = Mascota( mascotaId,
-                        nombre, especie, raza, edad.toIntOrNull() ?: 0, imageUris.filterNotNull(), horariosComida, tipoComida,
-                        ritualesComida, lugarDormir, horarioDormir, habitosHigiene, frecuenciaPaseo, limpieza,
-                        productosEspeciales, juguetesFavoritos, medicacion, veterinario, restricciones,
-                        accionesNoToleradas, puedeQuedarseSolo, ansiedadSeparacion, escapa,
-                        habitacionesRestringidas, adicional, userId, telefonoDuenio, correoDuenio, contactoAlternativo
-                    )
-                    repository.agregarMascota(mascota,
-                        onSuccess = { navController.navigate("AdminMascota") },
-                        onError = { Log.e("AddPet", "Error", it) }
+                    uploadImagesToCloudinary(
+                        anuncioId = mascotaId,
+                        imageUris = imageUris.filterNotNull(),
+                        onComplete = { urls ->
+                            val mascota = Mascota(
+                                mascotaId,
+                                nombre,
+                                especie,
+                                raza,
+                                edad.toIntOrNull() ?: 0,
+                                urls,
+                                horariosComida,
+                                tipoComida,
+                                ritualesComida,
+                                lugarDormir,
+                                horarioDormir,
+                                habitosHigiene,
+                                frecuenciaPaseo,
+                                limpieza,
+                                productosEspeciales,
+                                juguetesFavoritos,
+                                medicacion,
+                                veterinario,
+                                restricciones,
+                                accionesNoToleradas,
+                                puedeQuedarseSolo,
+                                ansiedadSeparacion,
+                                escapa,
+                                habitacionesRestringidas,
+                                adicional,
+                                userId,
+                                telefonoDuenio,
+                                correoDuenio,
+                                contactoAlternativo
+                            )
+                            repository.agregarMascota(
+                                mascota,
+                                onSuccess = {
+                                    Toast.makeText(context, "Mascota guardada con imágenes", Toast.LENGTH_SHORT).show()
+                                    navController.navigate("AdminMascota")
+                                    isSaving = false
+                                },
+                                onError = { error ->
+                                    Toast.makeText(context, "Error al guardar mascota: ${error.message}", Toast.LENGTH_LONG).show()
+                                    isSaving = false
+                                }
+                            )
+                        },
                     )
                 },
-                modifier = Modifier.padding(top = 16.dp)
+                enabled = !isSaving,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 16.dp)
+                    .shadow(4.dp, RoundedCornerShape(12.dp)),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = AquaLight,
+                    contentColor = Color.White
+                ),
+                shape = RoundedCornerShape(12.dp)
             ) {
-                Text("Guardar Mascota")
+                Text("Guardar Mascota", style = MaterialTheme.typography.labelLarge)
             }
         }
     }
 }
 
 @Composable
-fun ExpandableSection(title: String, content: @Composable () -> Unit) {
+fun ExpandableSection(
+    title: String,
+    showMandatory: Boolean = false,
+    content: @Composable () -> Unit
+) {
     var expanded by remember { mutableStateOf(false) }
     ElevatedCard(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp),
+            .padding(vertical = 8.dp)
+            .shadow(6.dp, RoundedCornerShape(12.dp)),
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = DeepNavy
+        ),
         onClick = { expanded = !expanded }
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(text = title, style = MaterialTheme.typography.titleMedium)
-                IconButton(onClick = { expanded = !expanded }) {
-                    Icon(
-                        imageVector = Icons.Default.ArrowBack,
-                        contentDescription = null,
-                        modifier = Modifier.rotate(if (expanded) 90f else 270f)
-                    )
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color.White
+                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (showMandatory) {
+                        Text(
+                            text = "Obligatorio",
+                            color = Color.White.copy(alpha = 0.5f),
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(end = 8.dp)
+                        )
+                    }
+                    IconButton(onClick = { expanded = !expanded }) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.rotate(if (expanded) 90f else 270f)
+                        )
+                    }
                 }
             }
             AnimatedVisibility(visible = expanded) {
-                Column(modifier = Modifier.padding(top = 8.dp)) {
+                Column(
+                    modifier = Modifier
+                        .padding(top = 8.dp)
+                        .background(OceanBlue.copy(alpha = 0.8f), RoundedCornerShape(8.dp))
+                        .padding(16.dp)
+                ) {
                     content()
                 }
             }
@@ -286,23 +408,50 @@ fun DropdownSelector(
     label: String,
     options: List<String>,
     selectedOption: String,
-    onOptionSelected: (String) -> Unit
+    onOptionSelected: (String) -> Unit,
+    isMandatory: Boolean = false,
+    modifier: Modifier = Modifier
 ) {
     var expanded by remember { mutableStateOf(false) }
-    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }) {
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = !expanded }
+    ) {
         OutlinedTextField(
             value = selectedOption,
             onValueChange = {},
             readOnly = true,
-            label = { Text(label) },
-            modifier = Modifier.menuAnchor().fillMaxWidth()
+            label = { Text(if (isMandatory) "$label*" else label, color = Color.White) },
+            modifier = modifier
+                .menuAnchor()
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = AquaLight,
+                unfocusedBorderColor = SkyBlue,
+                focusedLabelColor = Color.White,
+                unfocusedLabelColor = Color.White,
+                cursorColor = AquaLight,
+                focusedTextColor = Color.White,
+                unfocusedTextColor = Color.White,
+                focusedContainerColor = NightBlue.copy(alpha = 0.3f),
+                unfocusedContainerColor = NightBlue.copy(alpha = 0.3f)
+            )
         )
-        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.background(DeepNavy)
+        ) {
             options.forEach { selectionOption ->
-                DropdownMenuItem(text = { Text(selectionOption) }, onClick = {
-                    onOptionSelected(selectionOption)
-                    expanded = false
-                })
+                DropdownMenuItem(
+                    text = { Text(selectionOption, color = Color.White) },
+                    onClick = {
+                        onOptionSelected(selectionOption)
+                        expanded = false
+                    },
+                    modifier = Modifier.background(DeepNavy)
+                )
             }
         }
     }
@@ -313,18 +462,32 @@ private fun TextField(
     value: String,
     onValueChange: (String) -> Unit,
     label: String,
-    keyboardType: KeyboardType = KeyboardType.Text
+    keyboardType: KeyboardType = KeyboardType.Text,
+    isMandatory: Boolean = false,
+    modifier: Modifier = Modifier
 ) {
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
-        label = { Text(label) },
-        modifier = Modifier
+        label = { Text(if (isMandatory) "$label*" else label, color = Color.White) },
+        modifier = modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp),
-        keyboardOptions = KeyboardOptions.Default.copy(keyboardType = keyboardType)
+        keyboardOptions = KeyboardOptions.Default.copy(keyboardType = keyboardType),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = AquaLight,
+            unfocusedBorderColor = SkyBlue,
+            focusedLabelColor = Color.White,
+            unfocusedLabelColor = Color.White,
+            cursorColor = AquaLight,
+            focusedTextColor = Color.White,
+            unfocusedTextColor = Color.White,
+            focusedContainerColor = NightBlue.copy(alpha = 0.3f),
+            unfocusedContainerColor = NightBlue.copy(alpha = 0.3f)
+        )
     )
 }
+
 @Composable
 private fun TextArea(
     value: String,
@@ -336,16 +499,52 @@ private fun TextArea(
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
-        label = { Text(label) },
+        label = { Text(label, color = Color.White) },
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 200.dp)
             .padding(vertical = 4.dp),
-        keyboardOptions = KeyboardOptions.Default.copy(
-            keyboardType = keyboardType
-        ),
+        keyboardOptions = KeyboardOptions.Default.copy(keyboardType = keyboardType),
         maxLines = Int.MAX_VALUE,
-        singleLine = false
+        singleLine = false,
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = AquaLight,
+            unfocusedBorderColor = SkyBlue,
+            focusedLabelColor = Color.White,
+            unfocusedLabelColor = Color.White,
+            cursorColor = AquaLight,
+            focusedTextColor = Color.White,
+            unfocusedTextColor = Color.White,
+            focusedContainerColor = NightBlue.copy(alpha = 0.3f),
+            unfocusedContainerColor = NightBlue.copy(alpha = 0.3f)
+        )
     )
 }
 
+fun uploadImagesToCloudinary(
+    anuncioId: String,
+    imageUris: List<String>,
+    onComplete: (List<String>) -> Unit
+) {
+    val uploadedUrls = mutableListOf<String>()
+    imageUris.forEachIndexed { index, uriString ->
+        val uri = Uri.parse(uriString)
+        val publicId = "mascota_images/${anuncioId}_$index"
+        MediaManager.get().upload(uri)
+            .option("public_id", publicId)
+            .callback(object : UploadCallback {
+                override fun onStart(requestId: String) {}
+                override fun onProgress(requestId: String, bytes: Long, totalBytes: Long) {}
+                override fun onSuccess(requestId: String, resultData: Map<*, *>) {
+                    val url = resultData["secure_url"] as String
+                    uploadedUrls.add(url)
+                    if (uploadedUrls.size == imageUris.size) {
+                        onComplete(uploadedUrls)
+                    }
+                }
+                override fun onError(requestId: String?, error: com.cloudinary.android.callback.ErrorInfo?) {}
+                override fun onReschedule(requestId: String?, error: com.cloudinary.android.callback.ErrorInfo?) {}
+            })
+            .dispatch()
+    }
+}
