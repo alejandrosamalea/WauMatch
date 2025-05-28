@@ -2,6 +2,8 @@ package com.example.waumatch.ui.screens.Profiles
 
 import android.app.TimePickerDialog
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.location.Geocoder
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -36,6 +38,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import coil.compose.rememberAsyncImagePainter
 import com.example.waumatch.ui.theme.OceanBlue
 import com.example.waumatch.ui.theme.SkyBlue
@@ -51,12 +54,22 @@ import androidx.navigation.NavController
 import com.example.waumatch.MainActivity
 import com.example.waumatch.R
 import com.example.waumatch.ui.components.Mascota
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationServices
 import kotlinx.coroutines.tasks.await
+import android.Manifest
 
 @Composable
-fun ProfileScreen(navController: NavController, viewModel: ProfileManager = viewModel(factory = ProfileManagerFactory(LocalContext.current))) {
+fun ProfileScreen(
+    navController: NavController,
+    viewModel: ProfileManager = viewModel(factory = ProfileManagerFactory(LocalContext.current))
+) {
     val context = LocalContext.current
     val profileData by viewModel.getProfileData().observeAsState(ProfileManager.ProfileData())
+
+    var locationText by remember { mutableStateOf("Ubicación no disponible") }
+    var isLocationPermissionGranted by remember { mutableStateOf(false) }
+    val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
 
     var nombre by remember { mutableStateOf("Sin nombre") }
     var fechaRegistro by remember { mutableStateOf("01/2025") }
@@ -99,6 +112,26 @@ fun ProfileScreen(navController: NavController, viewModel: ProfileManager = view
     val auth = FirebaseAuth.getInstance()
     val currentUser = auth.currentUser
 
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        isLocationPermissionGranted = isGranted
+        if (isGranted) {
+            getLastKnownLocation(fusedLocationClient, context) { address ->
+                locationText = address
+                if (currentUser != null) {
+                    db.collection("usuarios").document(currentUser.uid)
+                        .update("location", address)
+                        .addOnFailureListener { e ->
+                            Log.e("ProfileScreen", "Error al guardar ubicación: ${e.message}")
+                        }
+                }
+            }
+        } else {
+            Toast.makeText(context, "Permiso de ubicación denegado", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     // Cargar datos del perfil
     if (currentUser != null) {
         LaunchedEffect(currentUser.uid) {
@@ -111,6 +144,8 @@ fun ProfileScreen(navController: NavController, viewModel: ProfileManager = view
                         subtitle = documentSnapshot.getString("subtitle") ?: ""
                         about = documentSnapshot.getString("about") ?: "Añade una descripción"
                         tags = documentSnapshot.get("tags") as? List<String> ?: tags
+                        // Cargar ubicación desde Firestore
+                        locationText = documentSnapshot.getString("location") ?: "Ubicación no disponible"
 
                         val firebaseAvailability = documentSnapshot.get("availability")
                         if (firebaseAvailability != null) {
@@ -156,6 +191,25 @@ fun ProfileScreen(navController: NavController, viewModel: ProfileManager = view
         LaunchedEffect(currentUser.uid) {
             loadTopReviews(currentUser.uid) { fetchedReviews ->
                 reviews = fetchedReviews
+            }
+        }
+
+        // Verificar permisos y actualizar ubicación si es necesario
+        LaunchedEffect(Unit) {
+            isLocationPermissionGranted = ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+
+            if (isLocationPermissionGranted && locationText == "Ubicación no disponible") {
+                getLastKnownLocation(fusedLocationClient, context) { address ->
+                    locationText = address
+                    db.collection("usuarios").document(currentUser.uid)
+                        .update("location", address)
+                        .addOnFailureListener { e ->
+                            Log.e("ProfileScreen", "Error al guardar ubicación: ${e.message}")
+                        }
+                }
             }
         }
     }
@@ -204,6 +258,11 @@ fun ProfileScreen(navController: NavController, viewModel: ProfileManager = view
                         if (isEditing) {
                             if (currentUser != null) {
                                 viewModel.saveChanges(nombre, subtitle, about, availability, tags)
+                                db.collection("usuarios").document(currentUser.uid)
+                                    .update("location", locationText)
+                                    .addOnFailureListener { e ->
+                                        Log.e("ProfileScreen", "Error al guardar ubicación: ${e.message}")
+                                    }
                             }
                         } else {
                             viewModel.toggleEditing()
@@ -586,7 +645,7 @@ fun ProfileScreen(navController: NavController, viewModel: ProfileManager = view
                                 Image(
                                     painter = rememberAsyncImagePainter(
                                         model = if (mascota.imagenes.isNotEmpty()) mascota.imagenes[0] else "https://via.placeholder.com/80",
-                                        placeholder = painterResource(id = R.drawable.profile) // Asegúrate de tener un placeholder en tus recursos
+                                        placeholder = painterResource(id = R.drawable.profile)
                                     ),
                                     contentDescription = "${mascota.nombre} image",
                                     modifier = Modifier
@@ -617,6 +676,91 @@ fun ProfileScreen(navController: NavController, viewModel: ProfileManager = view
                             .padding(vertical = 8.dp),
                         textAlign = TextAlign.Center
                     )
+                }
+            }
+        }
+
+        item {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "Ubicación",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = ComposeColor.White
+                    )
+                    if (!isLocationPermissionGranted) {
+                        IconButton(onClick = { locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION) }) {
+                            Icon(
+                                imageVector = Icons.Default.LocationOn,
+                                contentDescription = "Solicitar ubicación",
+                                tint = ComposeColor(0xFF2EDFF2)
+                            )
+                        }
+                    }
+                }
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(ComposeColor(0x1A1EB7D9), RoundedCornerShape(12.dp))
+                        .padding(15.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = locationText,
+                            color = ComposeColor.White,
+                            fontSize = 16.sp,
+                            modifier = Modifier.weight(1f)
+                        )
+                        if (isEditing) {
+                            Button(
+                                onClick = {
+                                    if (isLocationPermissionGranted) {
+                                        getLastKnownLocation(fusedLocationClient, context) { address ->
+                                            locationText = address
+                                            if (currentUser != null) {
+                                                db.collection("usuarios").document(currentUser.uid)
+                                                    .update("location", address)
+                                                    .addOnFailureListener { e ->
+                                                        Log.e("ProfileScreen", "Error al actualizar ubicación: ${e.message}")
+                                                    }
+                                            }
+                                        }
+                                    } else {
+                                        locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                                    }
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = ComposeColor(0xFF2EDFF2))
+                            ) {
+                                Text("Actualizar", color = ComposeColor.White, fontSize = 14.sp)
+                            }
+                        }
+                    }
+                    // Añadir texto "Ver mapa" debajo
+                    TextButton(
+                        onClick = { navController.navigate("test") },
+                        modifier = Modifier
+                            .align(Alignment.End)
+                            .padding(top = 8.dp)
+                    ) {
+                        Text(
+                            text = "Ver mapa",
+                            color = ComposeColor(0xFF2EDFF2),
+                            fontSize = 12.sp
+                        )
+                    }
                 }
             }
         }
@@ -716,6 +860,7 @@ fun ProfileScreen(navController: NavController, viewModel: ProfileManager = view
         }
     }
 }
+
 // Factory para crear ProfileManager
 class ProfileManagerFactory(private val context: android.content.Context) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -882,6 +1027,42 @@ fun AvailabilityItem(
                 )
             }
         }
+    }
+}
+
+fun getLastKnownLocation(
+    fusedLocationClient: FusedLocationProviderClient,
+    context: android.content.Context,
+    onLocationReceived: (String) -> Unit
+) {
+    try {
+        fusedLocationClient.lastLocation.addOnSuccessListener { location ->
+            if (location != null) {
+                val geocoder = Geocoder(context, Locale.getDefault())
+                try {
+                    val addresses = geocoder.getFromLocation(location.latitude, location.longitude, 1)
+                    if (!addresses.isNullOrEmpty()) {
+                        val address = addresses[0]
+                        val addressText = address.locality?.let { "$it, ${address.countryName}" }
+                            ?: "Lat: ${location.latitude}, Lon: ${location.longitude}"
+                        onLocationReceived(addressText)
+                    } else {
+                        onLocationReceived("Ubicación no disponible")
+                    }
+                } catch (e: Exception) {
+                    Log.e("ProfileScreen", "Error al obtener dirección: ${e.message}")
+                    onLocationReceived("Error al obtener dirección")
+                }
+            } else {
+                onLocationReceived("Ubicación no disponible")
+            }
+        }.addOnFailureListener { e ->
+            Log.e("ProfileScreen", "Error al obtener ubicación: ${e.message}")
+            onLocationReceived("Error al obtener ubicación")
+        }
+    } catch (e: SecurityException) {
+        Log.e("ProfileScreen", "Permiso de ubicación no otorgado: ${e.message}")
+        onLocationReceived("Permiso de ubicación requerido")
     }
 }
 

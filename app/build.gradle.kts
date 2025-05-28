@@ -82,6 +82,9 @@ dependencies {
     implementation ("com.squareup.okhttp3:okhttp:4.9.1")
     implementation ("com.google.code.gson:gson:2.10.1")
     implementation ("androidx.compose.material:material-icons-extended:<compose_version>")
-    implementation ("androidx.compose.ui:ui:1.5.0") // Ensure version is 1.4.0 or higher
+    implementation ("androidx.compose.ui:ui:1.5.0")
     implementation ("androidx.compose.material3:material3:1.2.0")
+    implementation ("com.google.android.gms:play-services-location:21.0.1")
+    implementation ("org.osmdroid:osmdroid-android:6.1.10")
+    implementation ("androidx.preference:preference-ktx:1.2.0")
 }

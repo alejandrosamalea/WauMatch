@@ -18,12 +18,12 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.waumatch.auth.LoginScreen
 import com.example.waumatch.auth.RegisterScreen
-import com.example.waumatch.ui.components.WauMatchHeader
 import com.example.waumatch.ui.navigation.MainNavigationBar
 import com.example.waumatch.ui.navigation.NavigationItem
 import com.example.waumatch.ui.screens.*
 import com.example.waumatch.ui.screens.Profiles.ForeignProfileScreen
 import com.example.waumatch.ui.screens.Profiles.ProfileScreen
+import com.example.waumatch.ui.screens.Profiles.Ubicacion
 import com.example.waumatch.ui.screens.mascotas.AdminMascota
 import com.example.waumatch.ui.screens.mascotas.AnadirMascota
 import com.example.waumatch.ui.theme.WauMatchTheme
@@ -56,7 +56,8 @@ class MainActivity : ComponentActivity() {
                     bottomBar = {
                         if (selectedDestination != NavigationItem.Login.route && selectedDestination != NavigationItem.Registrar.route && selectedDestination != NavigationItem.Recuperar.route
                             && selectedDestination != NavigationItem.Add.route && selectedDestination != NavigationItem.ForeignProfile.route && selectedDestination != NavigationItem.AnuncioDetallado.route
-                            && selectedDestination != NavigationItem.allReviews.route && selectedDestination != NavigationItem.anadirMascota.route && selectedDestination != NavigationItem.AdminMascota.route )
+                            && selectedDestination != NavigationItem.allReviews.route && selectedDestination != NavigationItem.anadirMascota.route && selectedDestination != NavigationItem.AdminMascota.route
+                            && selectedDestination != NavigationItem.Ubicacion.route)
                         {
                             MainNavigationBar(navController)
                         }
@@ -148,6 +149,12 @@ class MainActivity : ComponentActivity() {
                         }
                         composable(NavigationItem.AdminMascota.route) {
                             AdminMascota(
+                                navController = navController
+                            )
+                        }
+
+                        composable(NavigationItem.Ubicacion.route) {
+                            Ubicacion(
                                 navController = navController
                             )
                         }

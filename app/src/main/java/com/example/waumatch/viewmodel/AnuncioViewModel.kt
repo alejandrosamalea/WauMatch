@@ -22,6 +22,11 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import kotlin.math.PI
+import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.sin
+import kotlin.math.sqrt
 
 class AnuncioViewModel(application: Application) : AndroidViewModel(application) {
     private val repository: AnuncioRepository
@@ -46,7 +51,9 @@ class AnuncioViewModel(application: Application) : AndroidViewModel(application)
                     esFavorito = entity.esFavorito,
                     imagenes = entity.imagenes,
                     tipo = entity.tipo,
-                    mascotasIds = entity.mascotasIds
+                    mascotasIds = entity.mascotasIds,
+                    latitud =  entity.latitud,
+                    longitud =  entity.longitud
                 )
             }
         }
@@ -127,7 +134,9 @@ class AnuncioViewModel(application: Application) : AndroidViewModel(application)
                     idCreador = anuncio.idCreador,
                     imagenes = anuncio.imagenes,
                     tipo = anuncio.tipo,
-                    mascotasIds = anuncio.mascotasIds
+                    mascotasIds = anuncio.mascotasIds,
+                    latitud =  anuncio.latitud,
+                    longitud =  anuncio.longitud
                 )
                 repository.actualizarAnuncio(actualizado)
 
@@ -175,8 +184,9 @@ class AnuncioViewModel(application: Application) : AndroidViewModel(application)
                             idCreador = doc.getString("idCreador") ?: "",
                             imagenes = doc.get("imagenes") as? List<String> ?: listOf(),
                             tipo = doc.getString("tipo") ?: "",
-                            mascotasIds = doc.get("mascotasIds") as? List<String> ?: listOf()
-
+                            mascotasIds = doc.get("mascotasIds") as? List<String> ?: listOf(),
+                            latitud = doc.getDouble("latitud") ?: 0.0,
+                            longitud = doc.getDouble("longitud") ?: 0.0
                         )
                     } catch (e: Exception) {
                         null
@@ -229,7 +239,9 @@ class AnuncioViewModel(application: Application) : AndroidViewModel(application)
                                     "idCreador" to anuncio.idCreador,
                                     "imagenes" to uploadedImageUrls,
                                     "tipos" to anuncio.tipo,
-                                    "mascotasIds" to anuncio.mascotasIds
+                                    "mascotasIds" to anuncio.mascotasIds,
+                                    "latitud" to anuncio.latitud,
+                                    "longitud" to anuncio.longitud
                                 )
 
                                 db.collection("anuncios").add(anuncioMap)
@@ -258,5 +270,19 @@ class AnuncioViewModel(application: Application) : AndroidViewModel(application)
     fun obtenerIdUsuarioActual(): String? {
         return FirebaseAuth.getInstance().currentUser?.uid
     }
+
+    // Función para calcular la distancia usando la fórmula de Haversine
+    fun calculateDistance(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
+        val r = 6371.0 // Radio de la Tierra en kilómetros
+        val dLat = toRadians(lat2 - lat1)
+        val dLon = toRadians(lon2 - lon1)
+        val a = sin(dLat / 2) * sin(dLat / 2) +
+                cos(toRadians(lat1)) * cos(toRadians(lat2)) *
+                sin(dLon / 2) * sin(dLon / 2)
+        val c = 2 * atan2(sqrt(a), sqrt(1 - a))
+        return r * c // Distancia en kilómetros
+    }
+
+    private fun toRadians(degrees: Double): Double = degrees * PI / 180.0
 
 }
