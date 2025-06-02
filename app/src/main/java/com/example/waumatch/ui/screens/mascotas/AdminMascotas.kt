@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -105,7 +106,8 @@ fun AdminMascota(
                             modifier = Modifier.padding(16.dp)
                         ) {
                             AsyncImage(
-                                model = mascota.imagenes.firstOrNull() ?: "https://via.placeholder.com/150",
+                                model = mascota.imagenes.firstOrNull()
+                                    ?: "https://via.placeholder.com/150",
                                 contentDescription = "Imagen de la mascota",
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -137,17 +139,42 @@ fun AdminMascota(
                                 style = MaterialTheme.typography.bodyMedium
                             )
                             Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.End
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 12.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
+                                IconButton(
+                                    onClick = {
+                                        navController.navigate("editarmascota/${mascota.id}")
+                                    },
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .background(AquaLight, RoundedCornerShape(8.dp))
+                                ) {
+                                    Icon(
+                                        Icons.Default.Edit,
+                                        contentDescription = "Editar",
+                                        tint = Color.White
+                                    )
+                                }
+
                                 IconButton(
                                     onClick = {
                                         repository.eliminarMascota(
                                             mascota.id,
                                             onSuccess = {
-                                                mascotas = mascotas.filterNot { it.id == mascota.id }
+                                                mascotas =
+                                                    mascotas.filterNot { it.id == mascota.id }
                                             },
-                                            onError = { android.util.Log.e("ManagePets", "Error", it) }
+                                            onError = {
+                                                android.util.Log.e(
+                                                    "ManagePets",
+                                                    "Error",
+                                                    it
+                                                )
+                                            }
                                         )
                                     },
                                     modifier = Modifier
@@ -161,6 +188,7 @@ fun AdminMascota(
                                     )
                                 }
                             }
+
                         }
                     }
                 }

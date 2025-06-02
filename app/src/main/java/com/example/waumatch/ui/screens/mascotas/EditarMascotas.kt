@@ -45,7 +45,10 @@ import com.cloudinary.android.callback.UploadCallback
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AnadirMascota(navController: NavController) {
+fun EditarMascota(
+    navController: NavController,
+    mascotaId: String,
+) {
     val userId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
     val repository = MascotaRepository()
     var nombre by remember { mutableStateOf("") }
@@ -73,6 +76,8 @@ fun AnadirMascota(navController: NavController) {
     var telefonoDuenio by remember { mutableStateOf("") }
     var correoDuenio by remember { mutableStateOf("") }
     var contactoAlternativo by remember { mutableStateOf("") }
+    var adicional by remember { mutableStateOf("") }
+    val context = LocalContext.current
     val imageUris = remember { mutableStateListOf<String?>(null, null, null) }
     val pickImageLaunchers = List(3) { index ->
         rememberLauncherForActivityResult(
@@ -83,9 +88,48 @@ fun AnadirMascota(navController: NavController) {
             }
         }
     }
-    var adicional by remember { mutableStateOf("") }
+    LaunchedEffect(mascotaId) {
+        repository.obtenerMascotaPorId(
+            mascotaId,
+            onSuccess = { mascota ->
+                nombre = mascota.nombre
+                especie = mascota.especie
+                raza = mascota.raza
+                edad = mascota.edad.toString()
+                horariosComida = mascota.horariosComida
+                tipoComida = mascota.tipoComida
+                ritualesComida = mascota.ritualesComida
+                lugarDormir = mascota.lugarDormir
+                horarioDormir = mascota.horarioDormir
+                habitosHigiene = mascota.habitosHigiene
+                frecuenciaPaseo = mascota.frecuenciaPaseo
+                limpieza = mascota.limpieza
+                productosEspeciales = mascota.productosEspeciales
+                juguetesFavoritos = mascota.juguetesFavoritos
+                medicacion = mascota.medicacion
+                veterinario = mascota.veterinario
+                restricciones = mascota.restricciones
+                accionesNoToleradas = mascota.accionesNoToleradas
+                puedeQuedarseSolo = mascota.puedeQuedarseSolo
+                ansiedadSeparacion = mascota.ansiedadSeparacion
+                escapa = mascota.escapa
+                habitacionesRestringidas = mascota.habitacionesRestringidas
+                telefonoDuenio = mascota.telefonoDuenio
+                correoDuenio = mascota.correoDuenio
+                contactoAlternativo = mascota.contactoAlternativo
+                adicional = mascota.adicional
+                mascota.imagenes?.let {
+                    for (i in it.indices) {
+                        if (i < imageUris.size) imageUris[i] = it[i]
+                    }
+                }
+            },
+            onFailure = {
+                Toast.makeText(context, "Error al cargar la mascota", Toast.LENGTH_SHORT).show()
+            }
+        )
+    }
     var isSaving by remember { mutableStateOf(false) }
-    val context = LocalContext.current
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -98,7 +142,7 @@ fun AnadirMascota(navController: NavController) {
         TopAppBar(
             title = {
                 Text(
-                    "Agregar Mascota",
+                    "Edita a tu mascota",
                     color = Color.White,
                     style = MaterialTheme.typography.headlineSmall
                 )
@@ -272,7 +316,6 @@ fun AnadirMascota(navController: NavController) {
                         return@Button
                     }
                     isSaving = true
-                    val mascotaId = FirebaseFirestore.getInstance().collection("mascotas").document(userId).collection("lista").document().id
                     uploadImagesToCloudinary(
                         mascotaId = mascotaId,
                         imageUris = imageUris.filterNotNull(),
@@ -308,14 +351,15 @@ fun AnadirMascota(navController: NavController) {
                                 correoDuenio,
                                 contactoAlternativo
                             )
-                            repository.agregarMascota(
+                            repository.actualizarMascota(
                                 mascota,
                                 onSuccess = {
                                     Toast.makeText(context, "Mascota guardada con imágenes", Toast.LENGTH_SHORT).show()
                                     navController.navigate("AdminMascota")
                                     isSaving = false
                                 },
-                                onError = { error ->
+                                onFailure = { error ->
+                                    Log.i("ADMIN", "estoy hasta la polla: ${error.message} - ${mascota.id} ")
                                     Toast.makeText(context, "Error al guardar mascota: ${error.message}", Toast.LENGTH_LONG).show()
                                     isSaving = false
                                 }
@@ -340,123 +384,6 @@ fun AnadirMascota(navController: NavController) {
     }
 }
 
-@Composable
-fun ExpandableSection(
-    title: String,
-    showMandatory: Boolean = false,
-    content: @Composable () -> Unit
-) {
-    var expanded by remember { mutableStateOf(false) }
-    ElevatedCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp)
-            .shadow(6.dp, RoundedCornerShape(12.dp)),
-        colors = CardDefaults.elevatedCardColors(
-            containerColor = DeepNavy
-        ),
-        onClick = { expanded = !expanded }
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = Color.White
-                )
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    if (showMandatory) {
-                        Text(
-                            text = "Obligatorio",
-                            color = Color.White.copy(alpha = 0.5f),
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.padding(end = 8.dp)
-                        )
-                    }
-                    IconButton(onClick = { expanded = !expanded }) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.rotate(if (expanded) 90f else 270f)
-                        )
-                    }
-                }
-            }
-            AnimatedVisibility(visible = expanded) {
-                Column(
-                    modifier = Modifier
-                        .padding(top = 8.dp)
-                        .background(OceanBlue.copy(alpha = 0.8f), RoundedCornerShape(8.dp))
-                        .padding(16.dp)
-                ) {
-                    content()
-                }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun DropdownSelector(
-    label: String,
-    options: List<String>,
-    selectedOption: String,
-    onOptionSelected: (String) -> Unit,
-    isMandatory: Boolean = false,
-    modifier: Modifier = Modifier
-) {
-    var expanded by remember { mutableStateOf(false) }
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = !expanded }
-    ) {
-        OutlinedTextField(
-            value = selectedOption,
-            onValueChange = {},
-            readOnly = true,
-            label = { Text(if (isMandatory) "$label*" else label, color = Color.White) },
-            modifier = modifier
-                .menuAnchor()
-                .fillMaxWidth()
-                .padding(vertical = 4.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = AquaLight,
-                unfocusedBorderColor = SkyBlue,
-                focusedLabelColor = Color.White,
-                unfocusedLabelColor = Color.White,
-                cursorColor = AquaLight,
-                focusedTextColor = Color.White,
-                unfocusedTextColor = Color.White,
-                focusedContainerColor = NightBlue.copy(alpha = 0.3f),
-                unfocusedContainerColor = NightBlue.copy(alpha = 0.3f)
-            )
-        )
-        ExposedDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-            modifier = Modifier.background(DeepNavy)
-        ) {
-            options.forEach { selectionOption ->
-                DropdownMenuItem(
-                    text = { Text(selectionOption, color = Color.White) },
-                    onClick = {
-                        onOptionSelected(selectionOption)
-                        expanded = false
-                    },
-                    modifier = Modifier.background(DeepNavy)
-                )
-            }
-        }
-    }
-}
 
 @Composable
 private fun TextField(
@@ -522,51 +449,3 @@ private fun TextArea(
     )
 }
 
-fun uploadImagesToCloudinary(
-    mascotaId: String,
-    imageUris: List<String>,
-    onComplete: (List<String>) -> Unit
-) {
-    val uploadedUrls = MutableList(imageUris.size) { "" }
-    var completedUploads = 0
-
-    imageUris.forEachIndexed { index, uriString ->
-        if (uriString.startsWith("http")) {
-            // Ya es una URL remota, no la subimos
-            uploadedUrls[index] = uriString
-            completedUploads++
-            if (completedUploads == imageUris.size) {
-                onComplete(uploadedUrls)
-            }
-        } else {
-            // Es una URI local, la subimos
-            val uri = Uri.parse(uriString)
-            val publicId = "mascota_images/${mascotaId}_$index"
-            MediaManager.get().upload(uri)
-                .option("public_id", publicId)
-                .callback(object : UploadCallback {
-                    override fun onStart(requestId: String) {}
-                    override fun onProgress(requestId: String, bytes: Long, totalBytes: Long) {}
-                    override fun onSuccess(requestId: String, resultData: Map<*, *>) {
-                        val url = resultData["secure_url"] as String
-                        uploadedUrls[index] = url
-                        completedUploads++
-                        if (completedUploads == imageUris.size) {
-                            onComplete(uploadedUrls)
-                        }
-                    }
-
-                    override fun onError(requestId: String?, error: com.cloudinary.android.callback.ErrorInfo?) {
-                        Log.e("CloudinaryUpload", "Error al subir: ${error?.description}")
-                        completedUploads++
-                        if (completedUploads == imageUris.size) {
-                            onComplete(uploadedUrls)
-                        }
-                    }
-
-                    override fun onReschedule(requestId: String?, error: com.cloudinary.android.callback.ErrorInfo?) {}
-                })
-                .dispatch()
-        }
-    }
-}

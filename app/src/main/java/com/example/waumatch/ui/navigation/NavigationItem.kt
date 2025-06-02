@@ -22,5 +22,6 @@ sealed class NavigationItem(
     object anadirMascota : NavigationItem("anadirMascota", R.drawable.add, "Agregar Mascota")
     object AdminMascota : NavigationItem("adminMascota", R.drawable.profile, "Gestionar Mascotas")
     object Ubicacion : NavigationItem("test", R.drawable.profile, "Mapa")
+    object EditarMascota : NavigationItem("editarmascota/{mascotaId}", R.drawable.profile, "Gestionar Mascotas")
 
 }
