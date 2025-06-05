@@ -90,6 +90,48 @@ fun AddScreen(navController: NavController) {
         calendar.get(Calendar.DAY_OF_MONTH)
     )
 
+    val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+
+    val today = Calendar.getInstance()
+
+    val startDateCalendar = remember { Calendar.getInstance() }
+    val endDateCalendar = remember { Calendar.getInstance() }
+    val startDatePickerDialog = remember {
+        DatePickerDialog(
+            context,
+            { _, year, month, dayOfMonth ->
+                startDateCalendar.set(year, month, dayOfMonth)
+                fechaInicio = dateFormat.format(startDateCalendar.time)
+
+
+                if (fechaFin.isNotEmpty()) {
+                    val finDate = dateFormat.parse(fechaFin)
+                    if (startDateCalendar.time.after(finDate)) {
+                        fechaFin = fechaInicio
+                        endDateCalendar.time = startDateCalendar.time
+                    }
+                }
+            },
+            today.get(Calendar.YEAR),
+            today.get(Calendar.MONTH),
+            today.get(Calendar.DAY_OF_MONTH)
+        ).apply {
+            datePicker.minDate = today.timeInMillis
+        }
+    }
+
+    val endDatePickerDialog = remember {
+        DatePickerDialog(
+            context,
+            { _, year, month, dayOfMonth ->
+                endDateCalendar.set(year, month, dayOfMonth)
+                fechaFin = dateFormat.format(endDateCalendar.time)
+            },
+            today.get(Calendar.YEAR),
+            today.get(Calendar.MONTH),
+            today.get(Calendar.DAY_OF_MONTH)
+        )
+    }
     val locationLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == android.app.Activity.RESULT_OK) {
             result.data?.let { data ->
@@ -399,56 +441,71 @@ fun AddScreen(navController: NavController) {
             Spacer(modifier = Modifier.height(24.dp))
         }
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "Fecha Inicio*",
-                    style = MaterialTheme.typography.titleMedium.copy(color = Color.White),
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-                OutlinedTextField(
-                    value = fechaInicio,
-                    onValueChange = { if (fechaInicio.isEmpty()) fechaInicio = it },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color.White, RoundedCornerShape(8.dp)),
-                    readOnly = true,
-                    placeholder = { Text(formatDate(calendar.time), color = Color(0xFF999999)) },
-                    trailingIcon = {
-                        IconButton(onClick = { showStartPicker = true; datePickerDialog.show() }) {
-                            Icon(Icons.Default.DateRange, contentDescription = "Seleccionar fecha", tint = Color.Black)
-                        }
-                    },
-                    textStyle = LocalTextStyle.current.copy(color = Color.Black)
-                )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Fecha Inicio*",
+                        style = MaterialTheme.typography.titleMedium.copy(color = Color.White),
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    OutlinedTextField(
+                        value = fechaInicio,
+                        onValueChange = { /* no editable */ },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color.White, RoundedCornerShape(8.dp)),
+                        readOnly = true,
+                        placeholder = {
+                            Text("Selecciona fecha", color = Color(0xFF999999))
+                        },
+                        trailingIcon = {
+                            IconButton(onClick = {
+                                startDatePickerDialog.show()
+                            }) {
+                                Icon(Icons.Default.DateRange, contentDescription = "Seleccionar fecha", tint = Color.Black)
+                            }
+                        },
+                        textStyle = LocalTextStyle.current.copy(color = Color.Black)
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(16.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Fecha Fin*",
+                        style = MaterialTheme.typography.titleMedium.copy(color = Color.White),
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    OutlinedTextField(
+                        value = fechaFin,
+                        onValueChange = { /* no editable */ },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color.White, RoundedCornerShape(8.dp)),
+                        readOnly = true,
+                        placeholder = {
+                            Text("Selecciona fecha", color = Color(0xFF999999))
+                        },
+                        trailingIcon = {
+                            IconButton(onClick = {
+                                if (fechaInicio.isNotEmpty()) {
+                                    endDatePickerDialog.datePicker.minDate = startDateCalendar.timeInMillis
+                                } else {
+                                    endDatePickerDialog.datePicker.minDate = today.timeInMillis
+                                }
+                                endDatePickerDialog.show()
+                            }) {
+                                Icon(Icons.Default.DateRange, contentDescription = "Seleccionar fecha", tint = Color.Black)
+                            }
+                        },
+                        textStyle = LocalTextStyle.current.copy(color = Color.Black)
+                    )
+                }
             }
-            Spacer(modifier = Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "Fecha Fin*",
-                    style = MaterialTheme.typography.titleMedium.copy(color = Color.White),
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-                OutlinedTextField(
-                    value = fechaFin,
-                    onValueChange = { if (fechaFin.isEmpty()) fechaFin = it },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color.White, RoundedCornerShape(8.dp)),
-                    readOnly = true,
-                    placeholder = { Text(formatDate(calendar.time), color = Color(0xFF999999)) },
-                    trailingIcon = {
-                        IconButton(onClick = { showEndPicker = true; datePickerDialog.show() }) {
-                            Icon(Icons.Default.DateRange, contentDescription = "Seleccionar fecha", tint = Color.Black)
-                        }
-                    },
-                    textStyle = LocalTextStyle.current.copy(color = Color.Black)
-                )
-            }
-        }
 
         Spacer(modifier = Modifier.height(35.dp))
         Button(
