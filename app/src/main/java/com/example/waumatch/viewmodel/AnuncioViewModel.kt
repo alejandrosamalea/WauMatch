@@ -50,7 +50,7 @@ class AnuncioViewModel(application: Application) : AndroidViewModel(application)
                     idCreador = entity.idCreador,
                     esFavorito = entity.esFavorito,
                     imagenes = entity.imagenes,
-                    tipo = entity.tipo,
+                    tipos = entity.tipos,
                     mascotasIds = entity.mascotasIds,
                     latitud =  entity.latitud,
                     longitud =  entity.longitud
@@ -133,7 +133,7 @@ class AnuncioViewModel(application: Application) : AndroidViewModel(application)
                     creador = anuncio.creador,
                     idCreador = anuncio.idCreador,
                     imagenes = anuncio.imagenes,
-                    tipo = anuncio.tipo,
+                    tipos = anuncio.tipos,
                     mascotasIds = anuncio.mascotasIds,
                     latitud =  anuncio.latitud,
                     longitud =  anuncio.longitud
@@ -183,7 +183,7 @@ class AnuncioViewModel(application: Application) : AndroidViewModel(application)
                             creador = doc.getString("creador") ?: "",
                             idCreador = doc.getString("idCreador") ?: "",
                             imagenes = doc.get("imagenes") as? List<String> ?: listOf(),
-                            tipo = doc.getString("tipo") ?: "",
+                            tipos = doc.getString("tipos") ?: "",
                             mascotasIds = doc.get("mascotasIds") as? List<String> ?: listOf(),
                             latitud = doc.getDouble("latitud") ?: 0.0,
                             longitud = doc.getDouble("longitud") ?: 0.0
@@ -238,7 +238,7 @@ class AnuncioViewModel(application: Application) : AndroidViewModel(application)
                                     "creador" to userName,
                                     "idCreador" to anuncio.idCreador,
                                     "imagenes" to uploadedImageUrls,
-                                    "tipos" to anuncio.tipo,
+                                    "tipos" to anuncio.tipos,
                                     "mascotasIds" to anuncio.mascotasIds,
                                     "latitud" to anuncio.latitud,
                                     "longitud" to anuncio.longitud

@@ -485,7 +485,7 @@ fun AddScreen(navController: NavController) {
                     idCreador = idCreador,
                     esFavorito = false,
                     imagenes = imageUris.filterNotNull(),
-                    tipo = tipoAnuncio,
+                    tipos = tipoAnuncio,
                     mascotasIds = mascotasSeleccionadas.toList(),
                     latitud = latitud!!,
                     longitud = longitud!!

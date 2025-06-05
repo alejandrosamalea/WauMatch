@@ -15,7 +15,7 @@ data class AnuncioEntity(
     val creador: String,
     val idCreador: String,
     val imagenes: List<String>,
-    val tipo: String,
+    val tipos: String,
     val mascotasIds: List<String>,
     val latitud: Double,
     val longitud: Double

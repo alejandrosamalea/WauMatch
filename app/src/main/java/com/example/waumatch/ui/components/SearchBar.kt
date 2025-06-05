@@ -18,7 +18,8 @@ import androidx.compose.material.icons.filled.Search
 fun SearchBar(
     value: String,
     onValueChange: (String) -> Unit,
-    onFilterClick: () -> Unit
+    onFilterClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Row(
         modifier = Modifier

@@ -2,39 +2,72 @@ package com.example.waumatch.ui.screens
 
 import android.app.Application
 import android.util.Log
-import androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.DefaultTab.AlbumsTab.value
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.waumatch.data.local.AnuncioEntity
 import com.example.waumatch.ui.components.AnuncioCard
+import com.example.waumatch.ui.components.Mascota
 import com.example.waumatch.ui.components.SearchBar
 import com.example.waumatch.viewmodel.AnuncioViewModel
 import com.example.waumatch.viewmodel.AnuncioViewModelFactory
+import com.example.waumatch.viewmodel.MascotaViewModel
 import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
+// Colores del tema
+val NightBlue = Color(0xFF111826)
+val DeepNavy = Color(0xFF022859)
+val OceanBlue = Color(0xFF024873)
+val SkyBlue = Color(0xFF1D7A93)
+val AquaLight = Color(0xFF2EDFF2)
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(navController: NavController) {
     val context = LocalContext.current
     val application = context.applicationContext as Application
     val viewModel: AnuncioViewModel = viewModel(factory = AnuncioViewModelFactory(application))
+    val mascotasViewModel: MascotaViewModel = viewModel()
 
     val anuncios by viewModel.anuncios.collectAsState()
+    val mascotas by mascotasViewModel.mascotas.collectAsState()
+
+    // Cargar mascotas cuando cambian los anuncios
+    LaunchedEffect(anuncios) {
+        //mascotasViewModel.cargarMascotasParaAnuncios(anuncios)
+    }
+
     var searchQuery by remember { mutableStateOf("") }
     var filtrarPorComunidad by remember { mutableStateOf(false) }
+    var showFilters by remember { mutableStateOf(false) }
+    var selectedTipoMascota by remember { mutableStateOf("Todos") }
+    var selectedDistancia by remember { mutableStateOf(50f) }
+    var selectedTipoAnuncio by remember { mutableStateOf("Todos") }
 
     val userLocation by produceState<List<Double>?>(initialValue = null) {
         val idUsuario = viewModel.obtenerIdUsuarioActual() ?: ""
@@ -44,89 +77,147 @@ fun HomeScreen(navController: NavController) {
             if (doc.exists()) {
                 val lat = doc.getDouble("latitud")
                 val lng = doc.getDouble("longitud")
-                val rad = doc.getDouble("radio_km")
-                if (lat != null && lng != null && rad != null) {
+                val rad = doc.getDouble("radio_km") ?: 50.0
+                if (lat != null && lng != null) {
                     value = listOf(lat, lng, rad)
                 }
             }
         } catch (e: Exception) {
+            Log.e("HomeScreen", "Error al obtener ubicación del usuario", e)
             value = null
         }
     }
+
+    // Lista estática de tipos de mascotas
+    val tiposDisponibles = listOf("Todos", "Perro", "Gato", "Conejo", "Ave", "Hámster")
 
     val anunciosFiltrados by produceState(
         initialValue = emptyList<AnuncioEntity>(),
         userLocation,
         searchQuery,
         filtrarPorComunidad,
-        anuncios
+        anuncios,
+        mascotas,
+        selectedTipoMascota,
+        selectedDistancia,
+        selectedTipoAnuncio
     ) {
         if (userLocation == null) {
             value = emptyList()
             return@produceState
         }
 
+        // Crear un mapa de mascotaId a especie para búsquedas rápidas
+        val mascotaIdToEspecie = mascotas.associate { it.id to it.especie }
         val idUsuario = viewModel.obtenerIdUsuarioActual() ?: ""
 
         val lista = anuncios.filter { anuncio ->
             val noEsDelUsuario = anuncio.idCreador != idUsuario
             val coincideBusqueda = searchQuery.isBlank() ||
-                    anuncio.titulo.contains(searchQuery, true) ||
-                    anuncio.descripcion.contains(searchQuery, true)
+                    anuncio.titulo.contains(searchQuery, ignoreCase = true) ||
+                    anuncio.descripcion.contains(searchQuery, ignoreCase = true)
             val coincideComunidad = !filtrarPorComunidad ||
                     viewModel.perteneceALaComunidadDelUsuario(anuncio.idCreador)
-
-
             val distancia = viewModel.calculateDistance(
                 lat1 = userLocation!![0],
                 lon1 = userLocation!![1],
                 lat2 = anuncio.latitud,
                 lon2 = anuncio.longitud
             )
+            val dentroDelRadio = distancia <= selectedDistancia
+            val coincideTipoAnuncio = selectedTipoAnuncio == "Todos" ||
+                    anuncio.tipos == selectedTipoAnuncio
+            val coincideTipoMascota = selectedTipoMascota == "Todos" ||
+                    anuncio.mascotasIds.any { mascotaId ->
+                        mascotaIdToEspecie[mascotaId] == selectedTipoMascota
+                    }
 
-            val dentroDelRadio = distancia <= userLocation!![2]
-
-
-            noEsDelUsuario && coincideBusqueda && coincideComunidad && dentroDelRadio
+            noEsDelUsuario && coincideBusqueda && coincideComunidad &&
+                    dentroDelRadio && coincideTipoAnuncio && coincideTipoMascota
         }
 
         value = lista
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(Color(0xFF024873), Color(0xFF1D7A93))
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    SearchBar(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        onFilterClick = { showFilters = !showFilters },
+                        modifier = Modifier
+                            .fillMaxWidth(0.85f)
+                            .padding(end = 8.dp)
+                    )
+                },
+                actions = {
+                    IconButton(
+                        onClick = { showFilters = !showFilters },
+                        modifier = Modifier
+                            .background(
+                                color = if (showFilters) AquaLight else Color.White.copy(alpha = 0.2f),
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.FilterList,
+                            contentDescription = "Filtros",
+                            tint = if (showFilters) NightBlue else Color.White
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = OceanBlue,
+                    titleContentColor = Color.White
                 )
             )
-    ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            SearchBar(
-                value = searchQuery,
-                onValueChange = { searchQuery = it },
-                onFilterClick = { /* Lógica de filtro */ }
-            )
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 16.dp, top = 8.dp, bottom = 8.dp)
+        },
+        containerColor = Color.Transparent,
+        modifier = Modifier.background(
+            brush = Brush.verticalGradient(colors = listOf(OceanBlue, SkyBlue))
+        )
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(horizontal = 16.dp)
+        ) {
+            if (showFilters) {
+                FiltersPanel(
+                    selectedTipoMascota = selectedTipoMascota,
+                    onTipoMascotaChange = { selectedTipoMascota = it },
+                    tiposDisponibles = tiposDisponibles,
+                    selectedDistancia = selectedDistancia,
+                    onDistanciaChange = { selectedDistancia = it },
+                    selectedTipoAnuncio = selectedTipoAnuncio,
+                    onTipoAnuncioChange = { selectedTipoAnuncio = it },
+                    filtrarPorComunidad = filtrarPorComunidad,
+                    onFiltrarComunidadChange = { filtrarPorComunidad = it },
+                    onClose = { showFilters = false }
+                )
+            }
+
+            if (selectedTipoMascota != "Todos" || selectedDistancia != 50f ||
+                selectedTipoAnuncio != "Todos" || filtrarPorComunidad
             ) {
-                Checkbox(
-                    checked = filtrarPorComunidad,
-                    onCheckedChange = { filtrarPorComunidad = it },
-                    colors = CheckboxDefaults.colors(checkedColor = Color.White, uncheckedColor = Color.White)
-                )
-                Text(
-                    text = "Filtrar por tu comunidad",
-                    style = MaterialTheme.typography.bodyMedium.copy(color = Color.White)
+                FiltersIndicator(
+                    selectedTipoMascota = selectedTipoMascota,
+                    selectedDistancia = selectedDistancia,
+                    selectedTipoAnuncio = selectedTipoAnuncio,
+                    filtrarPorComunidad = filtrarPorComunidad,
+                    onClearFilters = {
+                        selectedTipoMascota = "Todos"
+                        selectedDistancia = 50f
+                        selectedTipoAnuncio = "Todos"
+                        filtrarPorComunidad = false
+                    }
                 )
             }
 
             if (anunciosFiltrados.isEmpty()) {
-
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -142,10 +233,10 @@ fun HomeScreen(navController: NavController) {
             } else {
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(2),
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(horizontal = 8.dp),
-                    contentPadding = PaddingValues(bottom = 8.dp)
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(bottom = 16.dp, top = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(anunciosFiltrados) { anuncio ->
                         AnuncioCard(
@@ -155,6 +246,214 @@ fun HomeScreen(navController: NavController) {
                         )
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun FiltersPanel(
+    selectedTipoMascota: String,
+    onTipoMascotaChange: (String) -> Unit,
+    tiposDisponibles: List<String>,
+    selectedDistancia: Float,
+    onDistanciaChange: (Float) -> Unit,
+    selectedTipoAnuncio: String,
+    onTipoAnuncioChange: (String) -> Unit,
+    filtrarPorComunidad: Boolean,
+    onFiltrarComunidadChange: (Boolean) -> Unit,
+    onClose: () -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        color = Color.White.copy(alpha = 0.95f),
+        shape = RoundedCornerShape(16.dp),
+        shadowElevation = 4.dp
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Filtros",
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = NightBlue
+                    )
+                )
+                IconButton(onClick = onClose) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Cerrar",
+                        tint = NightBlue
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Text(
+                text = "Tipo de Mascota",
+                style = MaterialTheme.typography.labelLarge.copy(
+                    color = DeepNavy,
+                    fontWeight = FontWeight.Medium
+                ),
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(bottom = 12.dp)
+            ) {
+                items(tiposDisponibles) { tipo ->
+                    FilterChip(
+                        text = tipo,
+                        isSelected = selectedTipoMascota == tipo,
+                        onClick = { onTipoMascotaChange(tipo) }
+                    )
+                }
+            }
+
+            Text(
+                text = "Distancia máxima: ${selectedDistancia.toInt()} km",
+                style = MaterialTheme.typography.labelLarge.copy(
+                    color = DeepNavy,
+                    fontWeight = FontWeight.Medium
+                ),
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+
+            Slider(
+                value = selectedDistancia,
+                onValueChange = onDistanciaChange,
+                valueRange = 1f..100f,
+                steps = 19,
+                colors = SliderDefaults.colors(
+                    thumbColor = AquaLight,
+                    activeTrackColor = SkyBlue,
+                    inactiveTrackColor = SkyBlue.copy(alpha = 0.3f)
+                ),
+                modifier = Modifier.padding(bottom = 12.dp)
+            )
+
+            Text(
+                text = "Tipo de Anuncio",
+                style = MaterialTheme.typography.labelLarge.copy(
+                    color = DeepNavy,
+                    fontWeight = FontWeight.Medium
+                ),
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(bottom = 12.dp)
+            ) {
+                listOf("Todos", "Dueño", "Cuidador").forEach { tipo ->
+                    FilterChip(
+                        text = tipo,
+                        isSelected = selectedTipoAnuncio == tipo,
+                        onClick = { onTipoAnuncioChange(tipo) }
+                    )
+                }
+            }
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Checkbox(
+                    checked = filtrarPorComunidad,
+                    onCheckedChange = onFiltrarComunidadChange,
+                    colors = CheckboxDefaults.colors(
+                        checkedColor = SkyBlue,
+                        uncheckedColor = DeepNavy
+                    )
+                )
+                Text(
+                    text = "Solo de mi comunidad",
+                    style = MaterialTheme.typography.bodyMedium.copy(color = DeepNavy),
+                    modifier = Modifier.padding(start = 8.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun FilterChip(
+    text: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .clip(RoundedCornerShape(20.dp))
+            .clickable { onClick() },
+        color = if (isSelected) AquaLight else Color.White,
+        shape = RoundedCornerShape(20.dp),
+        border = BorderStroke(1.dp, if (isSelected) AquaLight else SkyBlue)
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodySmall.copy(
+                color = if (isSelected) NightBlue else SkyBlue,
+                fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal
+            ),
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+        )
+    }
+}
+
+@Composable
+fun FiltersIndicator(
+    selectedTipoMascota: String,
+    selectedDistancia: Float,
+    selectedTipoAnuncio: String,
+    filtrarPorComunidad: Boolean,
+    onClearFilters: () -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        color = AquaLight.copy(alpha = 0.3f),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                val activeFilters = mutableListOf<String>()
+                if (selectedTipoMascota != "Todos") activeFilters.add(selectedTipoMascota)
+                if (selectedDistancia != 50f) activeFilters.add("${selectedDistancia.toInt()}km")
+                if (selectedTipoAnuncio != "Todos") activeFilters.add(selectedTipoAnuncio)
+                if (filtrarPorComunidad) activeFilters.add("Comunidad")
+
+                Text(
+                    text = "Filtros: ${activeFilters.joinToString(", ")}",
+                    style = MaterialTheme.typography.bodySmall.copy(color = Color.White),
+                    maxLines = 1
+                )
+            }
+
+            TextButton(
+                onClick = onClearFilters,
+                colors = ButtonDefaults.textButtonColors(contentColor = AquaLight)
+            ) {
+                Text("Limpiar", style = MaterialTheme.typography.bodySmall)
             }
         }
     }

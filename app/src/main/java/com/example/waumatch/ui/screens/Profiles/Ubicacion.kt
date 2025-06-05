@@ -1,5 +1,6 @@
 package com.example.waumatch.ui.screens.Profiles
 
+import android.annotation.SuppressLint
 import android.location.Geocoder
 import android.preference.PreferenceManager
 import androidx.compose.foundation.background
@@ -27,6 +28,7 @@ import org.osmdroid.views.overlay.Marker
 import org.osmdroid.views.overlay.Polygon
 import java.util.*
 
+@SuppressLint("ClickableViewAccessibility")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun Ubicacion(navController: NavController) {
