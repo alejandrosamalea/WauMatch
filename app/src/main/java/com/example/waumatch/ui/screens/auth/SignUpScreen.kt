@@ -60,15 +60,59 @@ fun RegisterScreen(navController: NavController) {
     var provinciaSeleccionada by remember { mutableStateOf("") }
     var expanded by remember { mutableStateOf(false) }
 
-    val provinciasEspaña = listOf(
-        "Álava", "Albacete", "Alicante", "Almería", "Asturias", "Ávila", "Badajoz",
-        "Barcelona", "Burgos", "Cáceres", "Cádiz", "Cantabria", "Castellón", "Ciudad Real",
-        "Córdoba", "La Coruña", "Cuenca", "Gerona", "Granada", "Guadalajara", "Guipúzcoa",
-        "Huelva", "Huesca", "Islas Baleares", "Jaén", "León", "Lérida", "Lugo", "Madrid",
-        "Málaga", "Murcia", "Navarra", "Orense", "Palencia", "Las Palmas", "Pontevedra",
-        "La Rioja", "Salamanca", "Santa Cruz de Tenerife", "Segovia", "Sevilla", "Soria",
-        "Tarragona", "Teruel", "Toledo", "Valencia", "Valladolid", "Vizcaya", "Zamora", "Zaragoza"
+    val provinciasEspaña = mapOf(
+        "Álava" to Pair(42.85, -2.68),
+        "Albacete" to Pair(38.99, -1.86),
+        "Alicante" to Pair(38.35, -0.48),
+        "Almería" to Pair(36.84, -2.46),
+        "Asturias" to Pair(43.36, -5.85),
+        "Ávila" to Pair(40.66, -4.70),
+        "Badajoz" to Pair(38.88, -6.97),
+        "Barcelona" to Pair(41.39, 2.17),
+        "Burgos" to Pair(42.34, -3.70),
+        "Cáceres" to Pair(39.48, -6.37),
+        "Cádiz" to Pair(36.53, -6.29),
+        "Cantabria" to Pair(43.46, -3.80),
+        "Castellón" to Pair(39.98, -0.03),
+        "Ciudad Real" to Pair(38.98, -3.93),
+        "Córdoba" to Pair(37.89, -4.78),
+        "La Coruña" to Pair(43.36, -8.41),
+        "Cuenca" to Pair(40.07, -2.14),
+        "Gerona" to Pair(41.98, 2.82),
+        "Granada" to Pair(37.18, -3.60),
+        "Guadalajara" to Pair(40.63, -3.17),
+        "Guipúzcoa" to Pair(43.32, -1.98),
+        "Huelva" to Pair(37.27, -6.95),
+        "Huesca" to Pair(42.14, -0.41),
+        "Islas Baleares" to Pair(39.57, 2.65),
+        "Jaén" to Pair(37.77, -3.79),
+        "León" to Pair(42.60, -5.57),
+        "Lérida" to Pair(41.62, 0.62),
+        "Lugo" to Pair(43.01, -7.56),
+        "Madrid" to Pair(40.42, -3.70),
+        "Málaga" to Pair(36.72, -4.42),
+        "Murcia" to Pair(37.98, -1.13),
+        "Navarra" to Pair(42.82, -1.65),
+        "Orense" to Pair(42.34, -7.86),
+        "Palencia" to Pair(42.01, -4.53),
+        "Las Palmas" to Pair(28.10, -15.42),
+        "Pontevedra" to Pair(42.43, -8.64),
+        "La Rioja" to Pair(42.46, -2.45),
+        "Salamanca" to Pair(40.97, -5.66),
+        "Santa Cruz de Tenerife" to Pair(28.47, -16.25),
+        "Segovia" to Pair(40.95, -4.12),
+        "Sevilla" to Pair(37.39, -5.99),
+        "Soria" to Pair(41.77, -2.46),
+        "Tarragona" to Pair(41.12, 1.25),
+        "Teruel" to Pair(40.34, -1.11),
+        "Toledo" to Pair(39.86, -4.02),
+        "Valencia" to Pair(39.47, -0.38),
+        "Valladolid" to Pair(41.65, -4.72),
+        "Vizcaya" to Pair(43.26, -2.93),
+        "Zamora" to Pair(41.50, -5.75),
+        "Zaragoza" to Pair(41.65, -0.88)
     )
+
 
     WauMatchTheme {
         Box(
@@ -206,7 +250,7 @@ fun RegisterScreen(navController: NavController) {
                         expanded = expanded,
                         onDismissRequest = { expanded = false }
                     ) {
-                        provinciasEspaña.forEach { provincia ->
+                        provinciasEspaña.keys.forEach { provincia ->
                             DropdownMenuItem(
                                 text = { Text(provincia) },
                                 onClick = {
@@ -219,6 +263,7 @@ fun RegisterScreen(navController: NavController) {
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
+
 
                 // Campo de contraseña
                 OutlinedTextField(
@@ -328,7 +373,13 @@ fun RegisterScreen(navController: NavController) {
                                         user?.sendEmailVerification()
                                             ?.addOnCompleteListener { verifyTask ->
                                                 if (verifyTask.isSuccessful) {
-                                                    crearUsuarioBD(db, email, password, nombre, direccion, auth, telefono, provinciaSeleccionada)
+                                                    val coordenadas = provinciasEspaña[provinciaSeleccionada]
+                                                    val latitud = coordenadas?.first
+                                                    val longitud = coordenadas?.second
+                                                    if (latitud != null && longitud != null) {
+                                                            crearUsuarioBD(db, email, password, nombre, direccion, auth, telefono, provinciaSeleccionada, latitud, longitud)
+                                                    }
+
                                                     navController.navigate(NavigationItem.Login.route)
                                                 } else {
                                                     errorMessage = "Error al enviar el correo de verificación: ${verifyTask.exception?.message}"
@@ -382,8 +433,9 @@ fun RegisterScreen(navController: NavController) {
 }
 
 @SuppressLint("RestrictedApi")
-fun crearUsuarioBD(bd: FirebaseFirestore, email: String, password: String, nombre: String, direccion: String, auth: FirebaseAuth, telefono: String, provincia: String) {
+fun crearUsuarioBD(bd: FirebaseFirestore, email: String, password: String, nombre: String, direccion: String, auth: FirebaseAuth, telefono: String, provincia: String, latitud: Double, longitud: Double) {
     val user = FirebaseAuth.getInstance().currentUser
+    val radio_km = 100
     val imageUrl = generateProfileImageFromName(nombre)
     user?.let {
         val usuarioData = hashMapOf(
@@ -393,6 +445,9 @@ fun crearUsuarioBD(bd: FirebaseFirestore, email: String, password: String, nombr
             "telefono" to telefono,
             "profileImage" to imageUrl,
             "provincia" to provincia,
+            "latitud" to latitud,
+            "longitud" to longitud,
+            "radio_km" to radio_km,
             "fechaRegistro" to SimpleDateFormat("MM/yyyy", Locale.getDefault()).format(Date()),
             "profileImage" to imageUrl
         )
