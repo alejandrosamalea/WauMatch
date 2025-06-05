@@ -243,56 +243,6 @@ fun ReviewItem(
             }
         }
         Spacer(modifier = Modifier.height(12.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "¿Te ha resultado útil esta opinión?",
-                fontSize = 12.sp,
-                color = ComposeColor.White
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = "Sí",
-                fontSize = 12.sp,
-                color = ComposeColor(0xFF2EDFF2),
-                fontWeight = if (hasVoted && isUseful) FontWeight.Bold else FontWeight.Normal,
-                modifier = Modifier
-                    .clickable {
-                        if (!hasVoted || (hasVoted && !isUseful)) {
-                            onVoteChanged(true)
-                            votedReviews[voteKey] = true
-                            if (!hasVoted) usefulCount++
-                        }
-                    }
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
-            )
-            Text(
-                text = "No",
-                fontSize = 12.sp,
-                color = ComposeColor(0xFF2EDFF2),
-                fontWeight = if (hasVoted && !isUseful) FontWeight.Bold else FontWeight.Normal,
-                modifier = Modifier
-                    .clickable {
-                        if (!hasVoted || (hasVoted && isUseful)) {
-                            onVoteChanged(false)
-                            votedReviews[voteKey] = false
-                            if (!hasVoted) usefulCount++ else if (isUseful) usefulCount--
-                        }
-                    }
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
-            )
-        }
-        Text(
-            text = "Útil para $usefulCount personas",
-            fontSize = 12.sp,
-            color = ComposeColor(0xFFCCCCCC),
-            modifier = Modifier
-                .align(Alignment.End)
-                .padding(top = 4.dp)
-        )
     }
 }
 

@@ -14,6 +14,7 @@ import com.cloudinary.android.callback.UploadCallback
 import com.example.waumatch.data.AnuncioRepository
 import com.example.waumatch.data.local.AnuncioEntity
 import com.example.waumatch.data.local.AppDatabase
+import com.example.waumatch.ui.components.Mascota
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.Flow
@@ -285,4 +286,30 @@ class AnuncioViewModel(application: Application) : AndroidViewModel(application)
 
     private fun toRadians(degrees: Double): Double = degrees * PI / 180.0
 
+    fun getMascotasByIds(userId: String, mascotaIds: List<String>, onResult: (List<Mascota>) -> Unit) {
+        viewModelScope.launch {
+            val db = FirebaseFirestore.getInstance()
+            val mascotas = mutableListOf<Mascota>()
+
+            try {
+                val snapshot = db.collection("mascotas")
+                    .document(userId)
+                    .collection("lista")
+                    .get()
+                    .await()
+
+                for (doc in snapshot.documents) {
+                    if (doc.id in mascotaIds) {
+                        doc.toObject(Mascota::class.java)?.let { mascota ->
+                            mascotas.add(mascota.copy(id = doc.id))
+                        }
+                    }
+                }
+                onResult(mascotas)
+            } catch (e: Exception) {
+                Log.e("AnuncioScreen", "Error al obtener mascotas: ${e.message}")
+                onResult(emptyList())
+            }
+        }
+    }
 }

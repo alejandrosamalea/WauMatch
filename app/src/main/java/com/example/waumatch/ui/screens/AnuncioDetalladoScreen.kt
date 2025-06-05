@@ -6,8 +6,11 @@ import android.net.Uri
 import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
@@ -27,14 +30,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Color.Companion.White
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
+import com.example.waumatch.R
+import com.example.waumatch.ui.components.Mascota
 import com.example.waumatch.ui.screens.Profiles.ProfileManagerFactory
 import com.example.waumatch.ui.screens.Profiles.ReviewData
 import com.example.waumatch.ui.screens.Profiles.loadTopReviews
@@ -53,6 +62,8 @@ fun AnuncioDetalladoScreen(
     anuncioId: String,
     onBackClick: () -> Unit
 ) {
+
+
     val context = LocalContext.current
     val application = context.applicationContext as Application
     val viewModel: AnuncioViewModel = viewModel(factory = AnuncioViewModelFactory(application))
@@ -73,7 +84,16 @@ fun AnuncioDetalladoScreen(
     }
 
     val profileImage = localProfileImage ?: profileData.profileImage.takeIf { it.isNotEmpty() } ?: "https://via.placeholder.com/150"
+    val mascotas = remember { mutableStateListOf<Mascota>() }
 
+    LaunchedEffect(anuncio?.id) {
+        if (anuncio != null && anuncio.mascotasIds.isNotEmpty()) {
+            viewModel.getMascotasByIds(anuncio.idCreador, anuncio.mascotasIds) { lista ->
+                mascotas.clear()
+                mascotas.addAll(lista)
+            }
+        }
+    }
     if (anuncio != null) {
         LaunchedEffect(anuncio.idCreador) {
             loadTopReviews(anuncio.idCreador) { fetchedReviews ->
@@ -210,15 +230,6 @@ fun AnuncioDetalladoScreen(
                         ),
                         modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
                     )
-                    Text(
-                        text = "5 €",
-                        style = MaterialTheme.typography.headlineMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White,
-                            fontSize = 28.sp
-                        ),
-                        modifier = Modifier.padding(bottom = 4.dp)
-                    )
 
                     Divider(
                         color = Color.White.copy(alpha = 0.3f),
@@ -275,6 +286,7 @@ fun AnuncioDetalladoScreen(
                         modifier = Modifier.padding(bottom = 16.dp)
                     )
 
+
                     Text(
                         text = anuncio.descripcion,
                         style = MaterialTheme.typography.bodyLarge.copy(color = Color.White),
@@ -283,11 +295,75 @@ fun AnuncioDetalladoScreen(
                             .fillMaxWidth()
                     )
 
+                    if (mascotas.isNotEmpty()) {
+                        Divider(
+                            color = Color.White.copy(alpha = 0.3f),
+                            thickness = 1.dp,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+                        Text(
+                            text = "Mascotas asociadas al anuncio",
+                            color = Color.White,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 8.dp)
+                        )
+                        LazyRow(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+
+                            items(mascotas) { mascota ->
+
+                                Column(
+                                    modifier = Modifier
+                                        .width(100.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(OceanBlue)
+                                        .clickable {
+                                           // navController.navigate("mascotaDetailsScreen/${mascota.id}")
+                                        }
+                                        .padding(8.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Image(
+                                        painter = rememberAsyncImagePainter(
+                                            model = if (mascota.imagenes.isNotEmpty()) mascota.imagenes[0] else "https://via.placeholder.com/80",
+                                            placeholder = painterResource(id = R.drawable.profile)
+                                        ),
+                                        contentDescription = "${mascota.nombre} image",
+                                        modifier = Modifier
+                                            .size(60.dp)
+                                            .clip(CircleShape)
+                                            .border(1.dp, (OceanBlue), CircleShape),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        text = mascota.nombre,
+                                        color = Color.White,
+                                        fontSize = 14.sp,
+                                        textAlign = TextAlign.Center,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                            }
+
+                        }
+                    }
+
                     Divider(
                         color = Color.White.copy(alpha = 0.3f),
                         thickness = 1.dp,
                         modifier = Modifier.padding(bottom = 16.dp)
                     )
+
 
                     Text(
                         text = "Disponibilidad:",
