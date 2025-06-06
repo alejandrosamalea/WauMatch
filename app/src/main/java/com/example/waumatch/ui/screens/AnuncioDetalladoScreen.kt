@@ -110,17 +110,22 @@ fun AnuncioDetalladoScreen(
             CircularProgressIndicator(color = AquaLight)
         }
     } else {
+
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(OceanBlue)
         ) {
+
+
+
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
                     .padding(bottom = 80.dp)
             ) {
+
                 // Carrusel de imágenes
                 Box(
                     modifier = Modifier
@@ -326,7 +331,7 @@ fun AnuncioDetalladoScreen(
                                         .clip(RoundedCornerShape(12.dp))
                                         .background(OceanBlue)
                                         .clickable {
-                                           // navController.navigate("mascotaDetailsScreen/${mascota.id}")
+                                            navController.navigate("mascotaDetailsScreen/${mascota.idDuenio}/${mascota.id}")
                                         }
                                         .padding(8.dp),
                                     horizontalAlignment = Alignment.CenterHorizontally

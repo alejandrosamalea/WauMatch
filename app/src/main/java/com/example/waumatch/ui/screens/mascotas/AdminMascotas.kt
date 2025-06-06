@@ -2,6 +2,7 @@ package com.example.waumatch.ui.screens.mascotas
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -106,13 +107,15 @@ fun AdminMascota(
                             modifier = Modifier.padding(16.dp)
                         ) {
                             AsyncImage(
-                                model = mascota.imagenes.firstOrNull()
-                                    ?: "https://via.placeholder.com/150",
+                                model = mascota.imagenes.firstOrNull() ?: "https://via.placeholder.com/150",
                                 contentDescription = "Imagen de la mascota",
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(150.dp)
-                                    .clip(RoundedCornerShape(8.dp)),
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .clickable {
+                                        navController.navigate("mascotaDetailsScreen/${mascota.idDuenio}/${mascota.id}")
+                                    },
                                 contentScale = ContentScale.Crop,
                                 placeholder = painterResource(android.R.drawable.ic_menu_gallery),
                                 error = painterResource(android.R.drawable.ic_menu_gallery)

@@ -27,6 +27,7 @@ import com.example.waumatch.ui.screens.Profiles.Ubicacion
 import com.example.waumatch.ui.screens.mascotas.AdminMascota
 import com.example.waumatch.ui.screens.mascotas.AnadirMascota
 import com.example.waumatch.ui.screens.mascotas.EditarMascota
+import com.example.waumatch.ui.screens.mascotas.MascotaDetailsScreen
 import com.example.waumatch.ui.theme.WauMatchTheme
 import com.example.waumatch.viewmodel.CloudinaryManager
 import com.google.firebase.auth.FirebaseAuth
@@ -169,6 +170,22 @@ class MainActivity : ComponentActivity() {
                         composable(NavigationItem.Ubicacion.route) {
                             Ubicacion(
                                 navController = navController
+                            )
+                        }
+                        composable(
+                            route = "mascotaDetailsScreen/{UIdUsuario}/{mascotaId}",
+                            arguments = listOf(
+                                navArgument("UIdUsuario") { type = NavType.StringType },
+                                navArgument("mascotaId") { type = NavType.StringType }
+                            )
+                        ) { backStackEntry ->
+                            val userId = backStackEntry.arguments?.getString("UIdUsuario") ?: ""
+                            val mascotaId = backStackEntry.arguments?.getString("mascotaId") ?: ""
+
+                            MascotaDetailsScreen(
+                                navController = navController,
+                                mascotaId = mascotaId,
+                                userId = userId
                             )
                         }
 
