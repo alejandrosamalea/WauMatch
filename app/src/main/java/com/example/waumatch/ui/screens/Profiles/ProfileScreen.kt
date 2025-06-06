@@ -58,11 +58,14 @@ import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import kotlinx.coroutines.tasks.await
 import android.Manifest
+import android.app.Application
+import com.example.waumatch.viewmodel.AnuncioViewModel
 
 @Composable
 fun ProfileScreen(
     navController: NavController,
-    viewModel: ProfileManager = viewModel(factory = ProfileManagerFactory(LocalContext.current))
+    viewModel: ProfileManager = viewModel(factory = ProfileManagerFactory(LocalContext.current)),
+    anuncioViewModel: AnuncioViewModel
 ) {
     val context = LocalContext.current
     val profileData by viewModel.getProfileData().observeAsState(ProfileManager.ProfileData())
@@ -75,6 +78,9 @@ fun ProfileScreen(
     var fechaRegistro by remember { mutableStateOf("01/2025") }
     var subtitle by remember { mutableStateOf("") }
     var about by remember { mutableStateOf("Añade una descripción") }
+    val application = context.applicationContext as Application
+    val anuncios = anuncioViewModel.anuncios.collectAsState().value
+
     var availability by remember {
         mutableStateOf(
             mapOf(
@@ -111,6 +117,7 @@ fun ProfileScreen(
     val db = FirebaseFirestore.getInstance()
     val auth = FirebaseAuth.getInstance()
     val currentUser = auth.currentUser
+    val NAnunciosUsuario = anuncios.count { it.idCreador == currentUser?.uid ?: 0 }
 
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -415,7 +422,15 @@ fun ProfileScreen(
                                     modifier = Modifier.padding(top = 5.dp)
                                 )
                             }
-                            StatItem(number = "127", label = "Cuidados")
+                            StatItem(
+                                number = NAnunciosUsuario.toString(),
+                                label = "Anuncios",
+                                modifier = Modifier.clickable {
+                                    Log.i("ADMIN", "clicka")
+                                    navController.navigate("misAnuncios")
+                                }
+                            )
+
                             val (mesReg, anioReg) = fechaRegistro.split("/").map { it.toInt() }
                             val totalMeses = (Calendar.getInstance().get(Calendar.YEAR) - anioReg) * 12 + (Calendar.getInstance().get(Calendar.MONTH) + 1 - mesReg)
                             StatItem(
@@ -872,10 +887,14 @@ class ProfileManagerFactory(private val context: android.content.Context) : View
     }
 }
 
-// Componentes auxiliares
 @Composable
-fun StatItem(number: String, label: String) {
+fun StatItem(
+    number: String,
+    label: String,
+    modifier: Modifier = Modifier
+) {
     Column(
+        modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(

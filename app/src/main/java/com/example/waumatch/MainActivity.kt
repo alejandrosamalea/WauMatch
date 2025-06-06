@@ -10,6 +10,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -29,6 +30,7 @@ import com.example.waumatch.ui.screens.mascotas.AnadirMascota
 import com.example.waumatch.ui.screens.mascotas.EditarMascota
 import com.example.waumatch.ui.screens.mascotas.MascotaDetailsScreen
 import com.example.waumatch.ui.theme.WauMatchTheme
+import com.example.waumatch.viewmodel.AnuncioViewModel
 import com.example.waumatch.viewmodel.CloudinaryManager
 import com.google.firebase.auth.FirebaseAuth
 import com.example.waumatch.viewmodel.ChatViewModel
@@ -72,7 +74,7 @@ class MainActivity : ComponentActivity() {
                     ) {
                         composable(NavigationItem.Home.route) { HomeScreen(navController) }
                         composable(NavigationItem.Chat.route) {
-                            val chatViewModel: ChatViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+                            val chatViewModel: ChatViewModel = viewModel()
                             ChatScreen(navController, chatViewModel)
                         }
                         composable(
@@ -80,7 +82,7 @@ class MainActivity : ComponentActivity() {
                             arguments = listOf(navArgument("userId") { type = NavType.StringType })
                         ) { backStackEntry ->
                             val userId = backStackEntry.arguments?.getString("userId") ?: ""
-                            val chatViewModel: ChatViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+                            val chatViewModel: ChatViewModel = viewModel()
                             ChatDetailScreen(
                                 navController = navController,
                                 userId = userId,
@@ -89,7 +91,7 @@ class MainActivity : ComponentActivity() {
                         }
                         composable(NavigationItem.Add.route) { AddScreen(navController) }
                         composable(NavigationItem.Favorites.route) { FavoritesScreen(navController) }
-                        composable(NavigationItem.Profile.route) { ProfileScreen(navController) }
+                        composable(NavigationItem.Profile.route) { ProfileScreen(navController, anuncioViewModel = AnuncioViewModel(application)) }
                         composable(NavigationItem.Login.route) { LoginScreen(navController) }
                         composable(NavigationItem.Registrar.route) { RegisterScreen(navController) }
                         composable(NavigationItem.Recuperar.route) { RecuperarScreen(navController) }
@@ -186,6 +188,13 @@ class MainActivity : ComponentActivity() {
                                 navController = navController,
                                 mascotaId = mascotaId,
                                 userId = userId
+                            )
+                        }
+                        composable(NavigationItem.MisAnuncios.route) {
+                            backStackEntry ->
+
+                            MisAnunciosScreen(
+                                navController = navController,
                             )
                         }
 
