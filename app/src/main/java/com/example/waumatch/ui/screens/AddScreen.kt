@@ -96,42 +96,39 @@ fun AddScreen(navController: NavController) {
 
     val startDateCalendar = remember { Calendar.getInstance() }
     val endDateCalendar = remember { Calendar.getInstance() }
-    val startDatePickerDialog = remember {
-        DatePickerDialog(
-            context,
-            { _, year, month, dayOfMonth ->
-                startDateCalendar.set(year, month, dayOfMonth)
-                fechaInicio = dateFormat.format(startDateCalendar.time)
+    val startDatePickerDialog = DatePickerDialog(
+        context,
+        { _, year, month, dayOfMonth ->
+            startDateCalendar.set(year, month, dayOfMonth)
+            fechaInicio = dateFormat.format(startDateCalendar.time)
 
-
-                if (fechaFin.isNotEmpty()) {
-                    val finDate = dateFormat.parse(fechaFin)
-                    if (startDateCalendar.time.after(finDate)) {
-                        fechaFin = fechaInicio
-                        endDateCalendar.time = startDateCalendar.time
-                    }
+            // Resetear fecha fin si es anterior
+            if (fechaFin.isNotEmpty()) {
+                val selectedEndDate = dateFormat.parse(fechaFin)
+                if (selectedEndDate != null && selectedEndDate.before(startDateCalendar.time)) {
+                    endDateCalendar.time = startDateCalendar.time
+                    fechaFin = dateFormat.format(startDateCalendar.time)
                 }
-            },
-            today.get(Calendar.YEAR),
-            today.get(Calendar.MONTH),
-            today.get(Calendar.DAY_OF_MONTH)
-        ).apply {
-            datePicker.minDate = today.timeInMillis
-        }
+            }
+        },
+        today.get(Calendar.YEAR),
+        today.get(Calendar.MONTH),
+        today.get(Calendar.DAY_OF_MONTH)
+    ).apply {
+        datePicker.minDate = today.timeInMillis
     }
 
-    val endDatePickerDialog = remember {
-        DatePickerDialog(
-            context,
-            { _, year, month, dayOfMonth ->
-                endDateCalendar.set(year, month, dayOfMonth)
-                fechaFin = dateFormat.format(endDateCalendar.time)
-            },
-            today.get(Calendar.YEAR),
-            today.get(Calendar.MONTH),
-            today.get(Calendar.DAY_OF_MONTH)
-        )
-    }
+
+    val endDatePickerDialog = DatePickerDialog(
+        context,
+        { _, year, month, dayOfMonth ->
+            endDateCalendar.set(year, month, dayOfMonth)
+            fechaFin = dateFormat.format(endDateCalendar.time)
+        },
+        today.get(Calendar.YEAR),
+        today.get(Calendar.MONTH),
+        today.get(Calendar.DAY_OF_MONTH)
+    )
     val locationLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == android.app.Activity.RESULT_OK) {
             result.data?.let { data ->
@@ -494,10 +491,10 @@ fun AddScreen(navController: NavController) {
                             IconButton(onClick = {
                                 if (fechaInicio.isNotEmpty()) {
                                     endDatePickerDialog.datePicker.minDate = startDateCalendar.timeInMillis
+                                    endDatePickerDialog.show()
                                 } else {
-                                    endDatePickerDialog.datePicker.minDate = today.timeInMillis
+                                    Toast.makeText(context, "Primero selecciona la fecha de inicio", Toast.LENGTH_SHORT).show()
                                 }
-                                endDatePickerDialog.show()
                             }) {
                                 Icon(Icons.Default.DateRange, contentDescription = "Seleccionar fecha", tint = Color.Black)
                             }
