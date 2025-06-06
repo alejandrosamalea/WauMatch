@@ -38,6 +38,8 @@ import com.example.waumatch.viewmodel.MascotaViewModel
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 // Colores del tema
 val NightBlue = Color(0xFF111826)
@@ -68,6 +70,7 @@ fun HomeScreen(navController: NavController) {
     var selectedTipoMascota by remember { mutableStateOf("Todos") }
     var selectedDistancia by remember { mutableStateOf(50f) }
     var selectedTipoAnuncio by remember { mutableStateOf("Todos") }
+    var ignorarDistancia by remember { mutableStateOf(false) } // Nuevo estado para ignorar distancia
 
     val userLocation by produceState<List<Double>?>(initialValue = null) {
         val idUsuario = viewModel.obtenerIdUsuarioActual() ?: ""
@@ -100,14 +103,15 @@ fun HomeScreen(navController: NavController) {
         mascotas,
         selectedTipoMascota,
         selectedDistancia,
-        selectedTipoAnuncio
+        selectedTipoAnuncio,
+        ignorarDistancia // Añadir ignorarDistancia como clave
     ) {
-        if (userLocation == null) {
+        if (userLocation == null && !ignorarDistancia) { // Solo requiere ubicación si no se ignora la distancia
             value = emptyList()
             return@produceState
         }
 
-        // Crear un mapa de mascotaId a especie para búsquedas rápidas
+        val fechaActual = System.currentTimeMillis()
         val mascotaIdToEspecie = mascotas.associate { it.id to it.especie }
         val idUsuario = viewModel.obtenerIdUsuarioActual() ?: ""
 
@@ -118,13 +122,13 @@ fun HomeScreen(navController: NavController) {
                     anuncio.descripcion.contains(searchQuery, ignoreCase = true)
             val coincideComunidad = !filtrarPorComunidad ||
                     viewModel.perteneceALaComunidadDelUsuario(anuncio.idCreador)
-            val distancia = viewModel.calculateDistance(
-                lat1 = userLocation!![0],
-                lon1 = userLocation!![1],
-                lat2 = anuncio.latitud,
-                lon2 = anuncio.longitud
-            )
-            val dentroDelRadio = distancia <= selectedDistancia
+            val dentroDelRadio = ignorarDistancia || // Ignorar distancia si está activado
+                    (userLocation != null && viewModel.calculateDistance(
+                        lat1 = userLocation!![0],
+                        lon1 = userLocation!![1],
+                        lat2 = anuncio.latitud,
+                        lon2 = anuncio.longitud
+                    ) <= selectedDistancia)
             val coincideTipoAnuncio = selectedTipoAnuncio == "Todos" ||
                     anuncio.tipos == selectedTipoAnuncio
             val coincideTipoMascota = selectedTipoMascota == "Todos" ||
@@ -132,8 +136,12 @@ fun HomeScreen(navController: NavController) {
                         mascotaIdToEspecie[mascotaId] == selectedTipoMascota
                     }
 
+            val fechaFinMillis = parseFechaAInMillis(anuncio.fechaFin)
+            val anuncioActivo = fechaFinMillis > fechaActual
+
             noEsDelUsuario && coincideBusqueda && coincideComunidad &&
-                    dentroDelRadio && coincideTipoAnuncio && coincideTipoMascota
+                    dentroDelRadio && coincideTipoAnuncio && coincideTipoMascota &&
+                    anuncioActivo
         }
 
         value = lista
@@ -196,23 +204,27 @@ fun HomeScreen(navController: NavController) {
                     onTipoAnuncioChange = { selectedTipoAnuncio = it },
                     filtrarPorComunidad = filtrarPorComunidad,
                     onFiltrarComunidadChange = { filtrarPorComunidad = it },
+                    ignorarDistancia = ignorarDistancia, // Pasar el nuevo estado
+                    onIgnorarDistanciaChange = { ignorarDistancia = it }, // Pasar el callback
                     onClose = { showFilters = false }
                 )
             }
 
             if (selectedTipoMascota != "Todos" || selectedDistancia != 50f ||
-                selectedTipoAnuncio != "Todos" || filtrarPorComunidad
+                selectedTipoAnuncio != "Todos" || filtrarPorComunidad || ignorarDistancia
             ) {
                 FiltersIndicator(
                     selectedTipoMascota = selectedTipoMascota,
                     selectedDistancia = selectedDistancia,
                     selectedTipoAnuncio = selectedTipoAnuncio,
                     filtrarPorComunidad = filtrarPorComunidad,
+                    ignorarDistancia = ignorarDistancia, // Pasar el nuevo estado
                     onClearFilters = {
                         selectedTipoMascota = "Todos"
                         selectedDistancia = 50f
                         selectedTipoAnuncio = "Todos"
                         filtrarPorComunidad = false
+                        ignorarDistancia = false // Restablecer ignorarDistancia
                     }
                 )
             }
@@ -251,6 +263,17 @@ fun HomeScreen(navController: NavController) {
     }
 }
 
+val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+
+fun parseFechaAInMillis(fechaStr: String): Long {
+    return try {
+        val date = sdf.parse(fechaStr)
+        date?.time ?: 0L
+    } catch (e: Exception) {
+        0L
+    }
+}
+
 @Composable
 fun FiltersPanel(
     selectedTipoMascota: String,
@@ -262,6 +285,8 @@ fun FiltersPanel(
     onTipoAnuncioChange: (String) -> Unit,
     filtrarPorComunidad: Boolean,
     onFiltrarComunidadChange: (Boolean) -> Unit,
+    ignorarDistancia: Boolean, // Nuevo parámetro
+    onIgnorarDistanciaChange: (Boolean) -> Unit, // Nuevo callback
     onClose: () -> Unit
 ) {
     Surface(
@@ -341,8 +366,32 @@ fun FiltersPanel(
                     activeTrackColor = SkyBlue,
                     inactiveTrackColor = SkyBlue.copy(alpha = 0.3f)
                 ),
-                modifier = Modifier.padding(bottom = 12.dp)
+                modifier = Modifier.padding(bottom = 12.dp),
+                enabled = !ignorarDistancia // Deshabilitar el slider si se ignora la distancia
             )
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Switch(
+                    checked = ignorarDistancia,
+                    onCheckedChange = onIgnorarDistanciaChange,
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = AquaLight,
+                        checkedTrackColor = SkyBlue,
+                        uncheckedThumbColor = DeepNavy,
+                        uncheckedTrackColor = SkyBlue.copy(alpha = 0.3f)
+                    )
+                )
+                Text(
+                    text = "Mostrar todos los anuncios",
+                    style = MaterialTheme.typography.bodyMedium.copy(color = DeepNavy),
+                    modifier = Modifier.padding(start = 8.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
 
             Text(
                 text = "Tipo de Anuncio",
@@ -419,6 +468,7 @@ fun FiltersIndicator(
     selectedDistancia: Float,
     selectedTipoAnuncio: String,
     filtrarPorComunidad: Boolean,
+    ignorarDistancia: Boolean, // Nuevo parámetro
     onClearFilters: () -> Unit
 ) {
     Surface(
@@ -438,7 +488,8 @@ fun FiltersIndicator(
             Column {
                 val activeFilters = mutableListOf<String>()
                 if (selectedTipoMascota != "Todos") activeFilters.add(selectedTipoMascota)
-                if (selectedDistancia != 50f) activeFilters.add("${selectedDistancia.toInt()}km")
+                if (!ignorarDistancia && selectedDistancia != 50f) activeFilters.add("${selectedDistancia.toInt()}km")
+                if (ignorarDistancia) activeFilters.add("Todas las distancias")
                 if (selectedTipoAnuncio != "Todos") activeFilters.add(selectedTipoAnuncio)
                 if (filtrarPorComunidad) activeFilters.add("Comunidad")
 
