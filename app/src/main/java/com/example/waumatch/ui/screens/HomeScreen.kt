@@ -39,6 +39,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Locale
 
 // Colores del tema
@@ -68,9 +69,9 @@ fun HomeScreen(navController: NavController) {
     var filtrarPorComunidad by remember { mutableStateOf(false) }
     var showFilters by remember { mutableStateOf(false) }
     var selectedTipoMascota by remember { mutableStateOf("Todos") }
-    var selectedDistancia by remember { mutableStateOf(50f) }
+    var selectedDistancia by remember { mutableStateOf(300f) }
     var selectedTipoAnuncio by remember { mutableStateOf("Todos") }
-    var ignorarDistancia by remember { mutableStateOf(false) } // Nuevo estado para ignorar distancia
+    var ignorarDistancia by remember { mutableStateOf(false) }
 
     val userLocation by produceState<List<Double>?>(initialValue = null) {
         val idUsuario = viewModel.obtenerIdUsuarioActual() ?: ""
@@ -80,7 +81,7 @@ fun HomeScreen(navController: NavController) {
             if (doc.exists()) {
                 val lat = doc.getDouble("latitud")
                 val lng = doc.getDouble("longitud")
-                val rad = doc.getDouble("radio_km") ?: 50.0
+                val rad = doc.getDouble("radio_km") ?: 300.0
                 if (lat != null && lng != null) {
                     value = listOf(lat, lng, rad)
                 }
@@ -104,14 +105,15 @@ fun HomeScreen(navController: NavController) {
         selectedTipoMascota,
         selectedDistancia,
         selectedTipoAnuncio,
-        ignorarDistancia // Añadir ignorarDistancia como clave
+        ignorarDistancia
     ) {
-        if (userLocation == null && !ignorarDistancia) { // Solo requiere ubicación si no se ignora la distancia
+        if (userLocation == null && !ignorarDistancia) {
             value = emptyList()
             return@produceState
         }
 
         val fechaActual = System.currentTimeMillis()
+        val startOfDayMillis = getStartOfDayMillis(fechaActual) // Get start of current day
         val mascotaIdToEspecie = mascotas.associate { it.id to it.especie }
         val idUsuario = viewModel.obtenerIdUsuarioActual() ?: ""
 
@@ -122,7 +124,7 @@ fun HomeScreen(navController: NavController) {
                     anuncio.descripcion.contains(searchQuery, ignoreCase = true)
             val coincideComunidad = !filtrarPorComunidad ||
                     viewModel.perteneceALaComunidadDelUsuario(anuncio.idCreador)
-            val dentroDelRadio = ignorarDistancia || // Ignorar distancia si está activado
+            val dentroDelRadio = ignorarDistancia ||
                     (userLocation != null && viewModel.calculateDistance(
                         lat1 = userLocation!![0],
                         lon1 = userLocation!![1],
@@ -137,7 +139,7 @@ fun HomeScreen(navController: NavController) {
                     }
 
             val fechaFinMillis = parseFechaAInMillis(anuncio.fechaFin)
-            val anuncioActivo = fechaFinMillis > fechaActual
+            val anuncioActivo = fechaFinMillis >= startOfDayMillis // Include announcements ending today
 
             noEsDelUsuario && coincideBusqueda && coincideComunidad &&
                     dentroDelRadio && coincideTipoAnuncio && coincideTipoMascota &&
@@ -204,13 +206,13 @@ fun HomeScreen(navController: NavController) {
                     onTipoAnuncioChange = { selectedTipoAnuncio = it },
                     filtrarPorComunidad = filtrarPorComunidad,
                     onFiltrarComunidadChange = { filtrarPorComunidad = it },
-                    ignorarDistancia = ignorarDistancia, // Pasar el nuevo estado
-                    onIgnorarDistanciaChange = { ignorarDistancia = it }, // Pasar el callback
+                    ignorarDistancia = ignorarDistancia,
+                    onIgnorarDistanciaChange = { ignorarDistancia = it },
                     onClose = { showFilters = false }
                 )
             }
 
-            if (selectedTipoMascota != "Todos" || selectedDistancia != 50f ||
+            if (selectedTipoMascota != "Todos" || selectedDistancia != 300f ||
                 selectedTipoAnuncio != "Todos" || filtrarPorComunidad || ignorarDistancia
             ) {
                 FiltersIndicator(
@@ -218,13 +220,13 @@ fun HomeScreen(navController: NavController) {
                     selectedDistancia = selectedDistancia,
                     selectedTipoAnuncio = selectedTipoAnuncio,
                     filtrarPorComunidad = filtrarPorComunidad,
-                    ignorarDistancia = ignorarDistancia, // Pasar el nuevo estado
+                    ignorarDistancia = ignorarDistancia,
                     onClearFilters = {
                         selectedTipoMascota = "Todos"
-                        selectedDistancia = 50f
+                        selectedDistancia = 300f
                         selectedTipoAnuncio = "Todos"
                         filtrarPorComunidad = false
-                        ignorarDistancia = false // Restablecer ignorarDistancia
+                        ignorarDistancia = false
                     }
                 )
             }
@@ -274,6 +276,16 @@ fun parseFechaAInMillis(fechaStr: String): Long {
     }
 }
 
+fun getStartOfDayMillis(currentTimeMillis: Long): Long {
+    val calendar = Calendar.getInstance()
+    calendar.timeInMillis = currentTimeMillis
+    calendar.set(Calendar.HOUR_OF_DAY, 0)
+    calendar.set(Calendar.MINUTE, 0)
+    calendar.set(Calendar.SECOND, 0)
+    calendar.set(Calendar.MILLISECOND, 0)
+    return calendar.timeInMillis
+}
+
 @Composable
 fun FiltersPanel(
     selectedTipoMascota: String,
@@ -285,8 +297,8 @@ fun FiltersPanel(
     onTipoAnuncioChange: (String) -> Unit,
     filtrarPorComunidad: Boolean,
     onFiltrarComunidadChange: (Boolean) -> Unit,
-    ignorarDistancia: Boolean, // Nuevo parámetro
-    onIgnorarDistanciaChange: (Boolean) -> Unit, // Nuevo callback
+    ignorarDistancia: Boolean,
+    onIgnorarDistanciaChange: (Boolean) -> Unit,
     onClose: () -> Unit
 ) {
     Surface(
@@ -359,7 +371,7 @@ fun FiltersPanel(
             Slider(
                 value = selectedDistancia,
                 onValueChange = onDistanciaChange,
-                valueRange = 1f..100f,
+                valueRange = 1f..300f,
                 steps = 19,
                 colors = SliderDefaults.colors(
                     thumbColor = AquaLight,
@@ -367,7 +379,7 @@ fun FiltersPanel(
                     inactiveTrackColor = SkyBlue.copy(alpha = 0.3f)
                 ),
                 modifier = Modifier.padding(bottom = 12.dp),
-                enabled = !ignorarDistancia // Deshabilitar el slider si se ignora la distancia
+                enabled = !ignorarDistancia
             )
 
             Row(
@@ -468,7 +480,7 @@ fun FiltersIndicator(
     selectedDistancia: Float,
     selectedTipoAnuncio: String,
     filtrarPorComunidad: Boolean,
-    ignorarDistancia: Boolean, // Nuevo parámetro
+    ignorarDistancia: Boolean,
     onClearFilters: () -> Unit
 ) {
     Surface(
