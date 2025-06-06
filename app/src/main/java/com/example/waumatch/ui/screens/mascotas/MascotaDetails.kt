@@ -185,23 +185,25 @@ fun MascotaDetailsScreen(
 
 @Composable
 fun DetailItem(label: String, value: String?) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp)
-    ) {
-        Text(
-            text = label,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Bold,
-            color = ComposeColor.White
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = value?.takeIf { it.isNotBlank() } ?: "Sin especificar por el dueño",
-            fontSize = 14.sp,
-            color = ComposeColor(0xFF2EDFF2),
-            lineHeight = 20.sp
-        )
+    if (value?.isNotBlank() == true) { // Solo renderiza si el valor no es nulo ni está en blanco
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp)
+        ) {
+            Text(
+                text = label,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = ComposeColor.White
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = value,
+                fontSize = 14.sp,
+                color = ComposeColor(0xFF2EDFF2),
+                lineHeight = 20.sp
+            )
+        }
     }
 }
