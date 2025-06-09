@@ -312,4 +312,24 @@ class AnuncioViewModel(application: Application) : AndroidViewModel(application)
             }
         }
     }
+    fun eliminarAnuncio(anuncioId: String, context: Context) {
+        viewModelScope.launch {
+            val db = FirebaseFirestore.getInstance()
+            try {
+                // 1. Eliminar de Firebase
+                db.collection("anuncios").document(anuncioId).delete().await()
+
+                // 2. Eliminar de Room (si existe)
+                repository.eliminarPorId(anuncioId)
+
+                // 3. Mostrar mensaje de éxito
+                Toast.makeText(context, "Anuncio eliminado correctamente", Toast.LENGTH_SHORT).show()
+            } catch (e: Exception) {
+                Log.e("eliminarAnuncio", "Error al eliminar anuncio: ${e.message}")
+                Toast.makeText(context, "Error al eliminar el anuncio", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+
 }

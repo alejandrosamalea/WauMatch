@@ -16,4 +16,8 @@ interface AnuncioDao {
     @Query("DELETE FROM anuncios")
     suspend fun clearAll()
 
+    @Query("DELETE FROM anuncios WHERE id = :id")
+    suspend fun deleteById(id: String)
+
+
 }

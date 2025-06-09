@@ -9,5 +9,9 @@ class AnuncioRepository(private val dao: AnuncioDao) {
     suspend fun actualizarAnuncio(anuncio: AnuncioEntity) {
         dao.actualizarAnuncio(anuncio)
     }
+    suspend fun eliminarPorId(id: String) {
+        dao.deleteById(id)
+    }
+
     fun getAll(): Flow<List<AnuncioEntity>> = dao.getAll()
 }
