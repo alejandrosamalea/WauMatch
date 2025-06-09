@@ -18,11 +18,14 @@ import com.example.waumatch.ui.components.Mascota
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import java.util.Locale
 import kotlin.math.PI
 import kotlin.math.atan2
 import kotlin.math.cos
@@ -35,6 +38,9 @@ class AnuncioViewModel(application: Application) : AndroidViewModel(application)
 
     var comunidadUsuarioActual: String? = null
         private set
+
+    private val _isLoading = MutableStateFlow(true) // Estado de carga
+    val isLoading: Flow<Boolean> get() = _isLoading.asStateFlow()
 
     val anuncios = dao.getAll()
         .map { entities ->
@@ -53,8 +59,8 @@ class AnuncioViewModel(application: Application) : AndroidViewModel(application)
                     imagenes = entity.imagenes,
                     tipos = entity.tipos,
                     mascotasIds = entity.mascotasIds,
-                    latitud =  entity.latitud,
-                    longitud =  entity.longitud
+                    latitud = entity.latitud,
+                    longitud = entity.longitud
                 )
             }
         }
@@ -73,7 +79,7 @@ class AnuncioViewModel(application: Application) : AndroidViewModel(application)
             .document(uid)
             .get()
             .addOnSuccessListener { document ->
-                comunidadUsuarioActual = document.getString("provincia") // o "comunidad"
+                comunidadUsuarioActual = document.getString("provincia")
             }
             .addOnFailureListener {
                 Log.e("AnuncioViewModel", "Error al obtener la comunidad del usuario actual", it)
@@ -95,7 +101,6 @@ class AnuncioViewModel(application: Application) : AndroidViewModel(application)
             false
         }
     }
-
 
     fun agregarAnuncio(anuncio: AnuncioEntity, context: Context) {
         viewModelScope.launch {
@@ -136,8 +141,8 @@ class AnuncioViewModel(application: Application) : AndroidViewModel(application)
                     imagenes = anuncio.imagenes,
                     tipos = anuncio.tipos,
                     mascotasIds = anuncio.mascotasIds,
-                    latitud =  anuncio.latitud,
-                    longitud =  anuncio.longitud
+                    latitud = anuncio.latitud,
+                    longitud = anuncio.longitud
                 )
                 repository.actualizarAnuncio(actualizado)
 
@@ -200,6 +205,17 @@ class AnuncioViewModel(application: Application) : AndroidViewModel(application)
             } catch (e: Exception) {
                 e.printStackTrace()
             }
+        }
+    }
+
+
+    private fun parseFechaAInMillis(fechaStr: String): Long {
+        val sdf = java.text.SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+        return try {
+            val date = sdf.parse(fechaStr)
+            date?.time ?: 0L
+        } catch (e: Exception) {
+            0L
         }
     }
 
@@ -268,20 +284,20 @@ class AnuncioViewModel(application: Application) : AndroidViewModel(application)
     fun getAnuncioById(id: String): Flow<AnuncioEntity?> {
         return anuncios.map { list -> list.find { it.id == id } }
     }
+
     fun obtenerIdUsuarioActual(): String? {
         return FirebaseAuth.getInstance().currentUser?.uid
     }
 
-    // Función para calcular la distancia usando la fórmula de Haversine
     fun calculateDistance(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
-        val r = 6371.0 // Radio de la Tierra en kilómetros
+        val r = 6371.0
         val dLat = toRadians(lat2 - lat1)
         val dLon = toRadians(lon2 - lon1)
         val a = sin(dLat / 2) * sin(dLat / 2) +
                 cos(toRadians(lat1)) * cos(toRadians(lat2)) *
                 sin(dLon / 2) * sin(dLon / 2)
         val c = 2 * atan2(sqrt(a), sqrt(1 - a))
-        return r * c // Distancia en kilómetros
+        return r * c
     }
 
     private fun toRadians(degrees: Double): Double = degrees * PI / 180.0
@@ -312,17 +328,13 @@ class AnuncioViewModel(application: Application) : AndroidViewModel(application)
             }
         }
     }
+
     fun eliminarAnuncio(anuncioId: String, context: Context) {
         viewModelScope.launch {
             val db = FirebaseFirestore.getInstance()
             try {
-                // 1. Eliminar de Firebase
                 db.collection("anuncios").document(anuncioId).delete().await()
-
-                // 2. Eliminar de Room (si existe)
                 repository.eliminarPorId(anuncioId)
-
-                // 3. Mostrar mensaje de éxito
                 Toast.makeText(context, "Anuncio eliminado correctamente", Toast.LENGTH_SHORT).show()
             } catch (e: Exception) {
                 Log.e("eliminarAnuncio", "Error al eliminar anuncio: ${e.message}")
@@ -330,6 +342,4 @@ class AnuncioViewModel(application: Application) : AndroidViewModel(application)
             }
         }
     }
-
-
 }

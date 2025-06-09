@@ -199,7 +199,7 @@ fun ProfileScreen(
 
 
 
-    // Cargar reseñas
+        // Cargar reseñas
         LaunchedEffect(currentUser.uid) {
             loadTopReviews(currentUser.uid) { fetchedReviews ->
                 reviews = fetchedReviews
