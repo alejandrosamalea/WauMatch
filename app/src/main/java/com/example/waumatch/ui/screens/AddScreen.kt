@@ -399,7 +399,7 @@ fun AddScreen(navController: NavController) {
         Spacer(modifier = Modifier.height(24.dp))
         if (tipoAnuncio == "Dueño") {
             Text(
-                text = "Selecciona las mascotas para este anuncio",
+                text = "Selecciona las mascotas para este anuncio*",
                 style = MaterialTheme.typography.titleMedium.copy(color = Color.White),
                 modifier = Modifier.padding(bottom = 8.dp)
             )
@@ -513,6 +513,10 @@ fun AddScreen(navController: NavController) {
                     }
                     if (imageUris[0] == null) {
                         Toast.makeText(context, "Por favor, selecciona una foto principal", Toast.LENGTH_SHORT).show()
+                        return@Button
+                    }
+                    if (tipoAnuncio == "Dueño" && mascotasSeleccionadas.isEmpty()) {
+                        Toast.makeText(context, "Por favor, selecciona al menos una mascota para el anuncio", Toast.LENGTH_SHORT).show()
                         return@Button
                     }
                     if (descripcion.length > MAX_DESCRIPCION) {
