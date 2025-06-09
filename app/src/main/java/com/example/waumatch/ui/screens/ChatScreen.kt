@@ -17,35 +17,17 @@ import kotlinx.coroutines.flow.collectLatest
 
 
 @Composable
-fun ChatItem(chat: Chat, currentUserId: String, onClick: (String) -> Unit) {
-    val otherUserId = chat.participants.firstOrNull { it != currentUserId } ?: "Desconocido"
-    var otherUserName by remember { mutableStateOf<String?>(null) }
-
-    // Obtener el nombre del usuario por su ID
-    LaunchedEffect(otherUserId) {
-        val db = FirebaseFirestore.getInstance()
-        db.collection("usuarios")
-            .document(otherUserId)
-            .get()
-            .addOnSuccessListener { document ->
-                if (document.exists()) {
-                    otherUserName = document.getString("nombre") ?: otherUserId
-                } else {
-                    otherUserName = otherUserId
-                }
-            }
-            .addOnFailureListener {
-                otherUserName = otherUserId
-            }
-    }
-
+fun ChatItem(
+    otherUserName: String,
+    onClick: () -> Unit
+) {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 8.dp)
             .height(80.dp)
-            .clickable { onClick(otherUserId) },
-        color = Color(0xFFBBDEFB), // Azul claro
+            .clickable { onClick() },
+        color = Color(0xFFBBDEFB),
         shape = MaterialTheme.shapes.medium,
         tonalElevation = 2.dp
     ) {
@@ -56,18 +38,37 @@ fun ChatItem(chat: Chat, currentUserId: String, onClick: (String) -> Unit) {
             verticalArrangement = Arrangement.Center
         ) {
             Text(
-                text = otherUserName ?: "Cargando...",
+                text = otherUserName,
                 style = MaterialTheme.typography.titleMedium,
                 color = Color.Black
             )
         }
     }
 }
-
 @Composable
 fun ChatScreen(navController: NavController, viewModel: ChatViewModel) {
     val chatList by viewModel.chats.collectAsState()
     val currentUserId = viewModel.currentUser.id
+    val nombres = remember { mutableStateMapOf<String, String>() }
+
+    LaunchedEffect(chatList) {
+        val db = FirebaseFirestore.getInstance()
+        chatList.forEach { chat ->
+            val otherUserId = chat.participants.firstOrNull { it != currentUserId } ?: return@forEach
+            if (!nombres.containsKey(otherUserId)) {
+                db.collection("usuarios")
+                    .document(otherUserId)
+                    .get()
+                    .addOnSuccessListener { document ->
+                        val nombre = document.getString("nombre") ?: "Desconocido"
+                        nombres[otherUserId] = nombre
+                    }
+                    .addOnFailureListener {
+                        nombres[otherUserId] = "Desconocido"
+                    }
+            }
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -87,11 +88,15 @@ fun ChatScreen(navController: NavController, viewModel: ChatViewModel) {
             )
             Spacer(modifier = Modifier.height(16.dp))
 
-            chatList.forEach { chat ->
-                ChatItem(chat = chat, currentUserId = currentUserId) { otherUserId ->
-                    navController.navigate("chatDetail/$otherUserId")
+            chatList
+                .sortedByDescending { it.messages.maxByOrNull { msg -> msg.timestamp }?.timestamp }
+                .forEach { chat ->
+                    val otherUserId = chat.participants.firstOrNull { it != currentUserId } ?: ""
+                    val otherUserName = nombres[otherUserId] ?: "Cargando..."
+                    ChatItem(otherUserName = otherUserName) {
+                        navController.navigate("chatDetail/$otherUserId")
+                    }
                 }
-            }
         }
     }
 }
