@@ -25,7 +25,6 @@ import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
-import org.osmdroid.views.overlay.Polygon
 import java.util.*
 
 @SuppressLint("ClickableViewAccessibility")
@@ -36,10 +35,8 @@ fun Ubicacion(navController: NavController) {
     val firestore = FirebaseFirestore.getInstance()
     val auth = FirebaseAuth.getInstance()
     val userId = auth.currentUser?.uid
-    var radiusKm by remember { mutableStateOf(5f) }
     var mapView by remember { mutableStateOf<MapView?>(null) }
     var userGeoPoint by remember { mutableStateOf<GeoPoint?>(null) }
-    var circleOverlay by remember { mutableStateOf<Polygon?>(null) }
     var selectedLocation by remember { mutableStateOf("") }
     var touchDownX by remember { mutableStateOf(0f) }
     var touchDownY by remember { mutableStateOf(0f) }
@@ -49,43 +46,30 @@ fun Ubicacion(navController: NavController) {
             val userDoc = firestore.collection("usuarios").document(userId).get().await()
             val lat = userDoc.getDouble("latitud")
             val lon = userDoc.getDouble("longitud")
-            val radio = userDoc.getDouble("radio_km")
-            if (lat != null && lon != null && radio != null) {
+            if (lat != null && lon != null) {
                 val geo = GeoPoint(lat, lon)
                 userGeoPoint = geo
-                radiusKm = radio.toFloat()
                 selectedLocation = userDoc.getString("location") ?: "Ubicación desconocida"
 
-                // Cuando se carga el mapa (mapView ya está seteado)
                 mapView?.let { map ->
                     val marker = Marker(map).apply {
                         position = geo
                         setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
                     }
-                    val circle = Polygon().apply {
-                        points = Polygon.pointsAsCircle(geo, (radiusKm * 1000).toDouble())
-                        fillPaint.color = 0x4466AAFF
-                        strokeColor = 0xFF0000FF.toInt()
-                        strokeWidth = 3f
-                    }
                     map.overlays.clear()
                     map.overlays.add(marker)
-                    map.overlays.add(circle)
                     map.controller.setCenter(geo)
-                    circleOverlay = circle
                     map.invalidate()
                 }
             }
         }
     }
 
-
     fun guardarDatos() {
         if (userId == null || userGeoPoint == null) return
         val data = hashMapOf(
             "latitud" to userGeoPoint!!.latitude,
             "longitud" to userGeoPoint!!.longitude,
-            "radio_km" to radiusKm.toDouble(),
             "location" to selectedLocation
         )
         firestore.collection("usuarios")
@@ -155,17 +139,6 @@ fun Ubicacion(navController: NavController) {
                                             setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
                                         }
                                         map.overlays.add(marker)
-                                        val circle = Polygon().apply {
-                                            points = Polygon.pointsAsCircle(
-                                                geoPoint,
-                                                (radiusKm * 1000).toDouble()
-                                            )
-                                            fillPaint.color = 0x4466AAFF
-                                            strokeColor = 0xFF0000FF.toInt()
-                                            strokeWidth = 3f
-                                        }
-                                        map.overlays.add(circle)
-                                        circleOverlay = circle
                                         map.controller.setCenter(geoPoint)
                                         val geocoder = Geocoder(ctx, Locale.getDefault())
                                         val addresses = geocoder.getFromLocation(
@@ -200,23 +173,6 @@ fun Ubicacion(navController: NavController) {
                     .padding(16.dp)
             ) {
                 Text(text = "Ubicación: $selectedLocation", color = Color.Black)
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(text = "Radio: ${radiusKm.toInt()} km", color = Color.Black)
-                Slider(
-                    value = radiusKm,
-                    onValueChange = {
-                        radiusKm = it
-                        val point = userGeoPoint
-                        val circle = circleOverlay
-                        val map = mapView
-                        if (point != null && circle != null && map != null) {
-                            circle.points = Polygon.pointsAsCircle(point, (it * 1000).toDouble())
-                            map.invalidate()
-                        }
-                    },
-                    valueRange = 2f..300f,
-                    steps = 298
-                )
                 Spacer(modifier = Modifier.height(16.dp))
                 Button(
                     onClick = { guardarDatos() },
