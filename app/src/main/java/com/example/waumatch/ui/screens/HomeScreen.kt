@@ -1,7 +1,9 @@
 package com.example.waumatch.ui.screens
 
 import android.app.Application
+import android.os.Build
 import android.util.Log
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -32,6 +34,11 @@ import com.example.waumatch.data.local.AnuncioEntity
 import com.example.waumatch.ui.components.AnuncioCard
 import com.example.waumatch.ui.components.Mascota
 import com.example.waumatch.ui.components.SearchBar
+import com.example.waumatch.ui.theme.AquaLight
+import com.example.waumatch.ui.theme.DeepNavy
+import com.example.waumatch.ui.theme.NightBlue
+import com.example.waumatch.ui.theme.OceanBlue
+import com.example.waumatch.ui.theme.SkyBlue
 import com.example.waumatch.viewmodel.AnuncioViewModel
 import com.example.waumatch.viewmodel.AnuncioViewModelFactory
 import com.example.waumatch.viewmodel.MascotaViewModel
@@ -42,13 +49,10 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 
-// Colores del tema
-val NightBlue = Color(0xFF111826)
-val DeepNavy = Color(0xFF022859)
-val OceanBlue = Color(0xFF024873)
-val SkyBlue = Color(0xFF1D7A93)
-val AquaLight = Color(0xFF2EDFF2)
 
+
+
+@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(navController: NavController) {
