@@ -15,6 +15,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -49,7 +50,7 @@ fun RegisterScreen(navController: NavController) {
     var email by remember { mutableStateOf("") }
     var nombre by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var direccion by remember { mutableStateOf("") }
+
     var telefono by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
     var showPassword by remember { mutableStateOf(false) }
@@ -215,6 +216,33 @@ fun RegisterScreen(navController: NavController) {
                     )
                 )
                 Spacer(modifier = Modifier.height(16.dp))
+                OutlinedTextField(
+                    value = telefono,
+                    onValueChange = {
+                        // Limitar solo números y máximo 9 caracteres
+                        if (it.length <= 9 && it.all { char -> char.isDigit() }) {
+                            telefono = it
+                        }
+                    },
+                    placeholder = { Text("Teléfono (9 dígitos)", color = Color(0xFF6B7280)) },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Phone,
+                            contentDescription = null,
+                            tint = Color(0xFF2EDFF2)
+                        )
+                    },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0x14FFFFFF), RoundedCornerShape(12.dp))
+                        .border(1.dp, Color(0x1AFFFFFF), RoundedCornerShape(12.dp)),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White
+                    )
+                )
+                Spacer(modifier = Modifier.height(16.dp))
 
                 ExposedDropdownMenuBox(
                     expanded = expanded,
@@ -364,7 +392,7 @@ fun RegisterScreen(navController: NavController) {
 
                 Button(
                     onClick = {
-                        if (validate(email, password, confirmPassword, nombre, auth, { errorMessage = it })) {
+                        if (validate(email, password, confirmPassword, nombre, telefono, auth, { errorMessage = it })) {
                             auth.createUserWithEmailAndPassword(email, password)
                                 .addOnCompleteListener { task ->
                                     if (task.isSuccessful) {
@@ -377,7 +405,7 @@ fun RegisterScreen(navController: NavController) {
                                                     val latitud = coordenadas?.first
                                                     val longitud = coordenadas?.second
                                                     if (latitud != null && longitud != null) {
-                                                            crearUsuarioBD(db, email, password, nombre, direccion, auth, telefono, provinciaSeleccionada, latitud, longitud)
+                                                            crearUsuarioBD(db, email, password, nombre,  auth, telefono, provinciaSeleccionada, latitud, longitud)
                                                     }
 
                                                     navController.navigate(NavigationItem.Login.route)
@@ -433,7 +461,7 @@ fun RegisterScreen(navController: NavController) {
 }
 
 @SuppressLint("RestrictedApi")
-fun crearUsuarioBD(bd: FirebaseFirestore, email: String, password: String, nombre: String, direccion: String, auth: FirebaseAuth, telefono: String, provincia: String, latitud: Double, longitud: Double) {
+fun crearUsuarioBD(bd: FirebaseFirestore, email: String, password: String, nombre: String, auth: FirebaseAuth, telefono: String, provincia: String, latitud: Double, longitud: Double) {
     val user = FirebaseAuth.getInstance().currentUser
     val radio_km = 100
     val imageUrl = generateProfileImageFromName(nombre)
@@ -441,7 +469,6 @@ fun crearUsuarioBD(bd: FirebaseFirestore, email: String, password: String, nombr
         val usuarioData = hashMapOf(
             "nombre" to nombre,
             "email" to email,
-            "direccion" to direccion,
             "telefono" to telefono,
             "profileImage" to imageUrl,
             "provincia" to provincia,
@@ -462,9 +489,12 @@ fun crearUsuarioBD(bd: FirebaseFirestore, email: String, password: String, nombr
 }
 
 
-fun validate(email: String, password: String, confirmPassword: String, nombre: String, auth: FirebaseAuth, setErrorMessage: (String) -> Unit): Boolean {
+fun validate(email: String, password: String, confirmPassword: String, nombre: String, telefono: String, auth: FirebaseAuth, setErrorMessage: (String) -> Unit): Boolean {
     val regex = "^[A-Za-z0-9._%+-]+@(gmail\\.com|hotmail\\.com|yahoo\\.com)$"
-
+    if (telefono.length != 9 || !telefono.all { it.isDigit() }) {
+        setErrorMessage("El teléfono debe contener exactamente 9 dígitos")
+        return false
+    }
     if (email.isEmpty() || password.isEmpty() || confirmPassword.isEmpty() || nombre.isEmpty()) {
         setErrorMessage("Todos los campos son obligatorios")
         return false

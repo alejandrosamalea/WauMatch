@@ -18,6 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.*
@@ -51,6 +52,7 @@ fun ForeignProfileScreen(userId: String, onBackClick: () -> Unit, navController:
     var nombre by remember { mutableStateOf("Sin nombre") }
     var fechaRegistro by remember { mutableStateOf("01/2025") }
     var subtitle by remember { mutableStateOf("") }
+    var telefono by remember { mutableStateOf("No disponible") }
     var about by remember { mutableStateOf("Añade una descripción") }
     var availability by remember {
         mutableStateOf(
@@ -109,6 +111,7 @@ fun ForeignProfileScreen(userId: String, onBackClick: () -> Unit, navController:
                     about = documentSnapshot.getString("about") ?: "Añade una descripción"
                     tags = documentSnapshot.get("tags") as? List<String> ?: tags
                     profileImage = documentSnapshot.getString("profileImage") ?: "https://via.placeholder.com/150"
+                    telefono = documentSnapshot.getString("telefono") ?: "No disponible"
 
                     val firebaseAvailability = documentSnapshot.get("availability")
                     if (firebaseAvailability != null) {
@@ -497,6 +500,45 @@ fun ForeignProfileScreen(userId: String, onBackClick: () -> Unit, navController:
                                 )
                             }
                         }
+                    }
+                }
+            }
+        }
+        item {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp)
+            ) {
+                Text(
+                    text = "Teléfono de contacto",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = ComposeColor.White,
+                    modifier = Modifier.padding(bottom = 15.dp)
+                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(ComposeColor(0x1A1EB7D9), RoundedCornerShape(12.dp))
+                        .padding(15.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Phone,
+                            contentDescription = "Teléfono",
+                            tint = ComposeColor(0xFF2EDFF2),
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = telefono,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = if (telefono == "No disponible") ComposeColor.Gray else ComposeColor.White
+                        )
                     }
                 }
             }

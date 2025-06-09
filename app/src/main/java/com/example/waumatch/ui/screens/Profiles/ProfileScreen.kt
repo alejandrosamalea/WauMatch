@@ -59,6 +59,8 @@ import com.google.android.gms.location.LocationServices
 import kotlinx.coroutines.tasks.await
 import android.Manifest
 import android.app.Application
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import com.example.waumatch.viewmodel.AnuncioViewModel
 
 @Composable
@@ -76,6 +78,7 @@ fun ProfileScreen(
 
     var nombre by remember { mutableStateOf("Sin nombre") }
     var fechaRegistro by remember { mutableStateOf("01/2025") }
+    var telefono by remember { mutableStateOf("No disponible") }
     var subtitle by remember { mutableStateOf("") }
     var about by remember { mutableStateOf("Añade una descripción") }
     val application = context.applicationContext as Application
@@ -151,8 +154,8 @@ fun ProfileScreen(
                         subtitle = documentSnapshot.getString("subtitle") ?: ""
                         about = documentSnapshot.getString("about") ?: "Añade una descripción"
                         tags = documentSnapshot.get("tags") as? List<String> ?: tags
-                        // Cargar ubicación desde Firestore
                         locationText = documentSnapshot.getString("location") ?: "Ubicación no disponible"
+                        telefono = documentSnapshot.getString("telefono") ?: "No disponible"
 
                         val firebaseAvailability = documentSnapshot.get("availability")
                         if (firebaseAvailability != null) {
@@ -194,7 +197,9 @@ fun ProfileScreen(
                 }
         }
 
-        // Cargar reseñas
+
+
+    // Cargar reseñas
         LaunchedEffect(currentUser.uid) {
             loadTopReviews(currentUser.uid) { fetchedReviews ->
                 reviews = fetchedReviews
@@ -266,7 +271,11 @@ fun ProfileScreen(
                             if (currentUser != null) {
                                 viewModel.saveChanges(nombre, subtitle, about, availability, tags)
                                 db.collection("usuarios").document(currentUser.uid)
-                                    .update("location", locationText)
+                                    .update(mapOf(
+                                        "location" to locationText,
+                                        "telefono" to telefono // Añadir el teléfono al mapa de actualización
+                                    )
+                                    )
                                     .addOnFailureListener { e ->
                                         Log.e("ProfileScreen", "Error al guardar ubicación: ${e.message}")
                                     }
@@ -563,6 +572,100 @@ fun ProfileScreen(
             }
         }
         item {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp)
+            ) {
+                Text(
+                    text = "Teléfono de contacto",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = ComposeColor.White,
+                    modifier = Modifier.padding(bottom = 15.dp)
+                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(ComposeColor(0x1A1EB7D9), RoundedCornerShape(12.dp))
+                        .padding(15.dp)
+                ) {
+                    if (isEditing) {
+                        val MAX_PHONE_LENGTH = 9 // Máximo y mínimo 9 dígitos
+                        var isPhoneValid by remember { mutableStateOf(telefono.length == MAX_PHONE_LENGTH && telefono.matches(Regex("^[0-9]{9}$"))) }
+
+                        TextField(
+                            value = telefono,
+                            onValueChange = { newValue ->
+                                // Solo permitir números y máximo 9 dígitos
+                                if (newValue.length <= MAX_PHONE_LENGTH && newValue.matches(Regex("^[0-9]*$"))) {
+                                    telefono = newValue
+                                    isPhoneValid = newValue.length == MAX_PHONE_LENGTH
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .border(
+                                    width = 1.dp,
+                                    color = if (isPhoneValid || telefono.isEmpty()) ComposeColor(0xFF2EDFF2) else ComposeColor.Red,
+                                    shape = RoundedCornerShape(8.dp)
+                                ),
+                            textStyle = LocalTextStyle.current.copy(
+                                color = ComposeColor.White,
+                                fontSize = 16.sp
+                            ),
+                            placeholder = { Text("Ingresa tu número de teléfono", color = ComposeColor(0xFF666666)) },
+                            colors = TextFieldDefaults.colors(
+                                focusedContainerColor = ComposeColor.Transparent,
+                                unfocusedContainerColor = ComposeColor.Transparent,
+                                focusedIndicatorColor = ComposeColor.Transparent,
+                                unfocusedIndicatorColor = ComposeColor.Transparent
+                            ),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone), // Teclado numérico
+                            isError = !isPhoneValid && telefono.isNotEmpty() // Mostrar error si no es válido
+                        )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 4.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = "${telefono.length}/$MAX_PHONE_LENGTH",
+                                fontSize = 12.sp,
+                                color = ComposeColor.White
+                            )
+                            if (!isPhoneValid && telefono.isNotEmpty()) {
+                                Text(
+                                    text = "Debe tener exactamente 9 dígitos",
+                                    fontSize = 12.sp,
+                                    color = ComposeColor.Red
+                                )
+                            }
+                        }
+                    } else {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Phone,
+                                contentDescription = "Teléfono",
+                                tint = ComposeColor(0xFF2EDFF2),
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = telefono,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = if (telefono == "No disponible") ComposeColor.Gray else ComposeColor.White
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        item {
             val mascotas = remember { mutableStateListOf<Mascota>() }
             val userId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
 
@@ -815,6 +918,7 @@ fun ProfileScreen(
                 }
             }
         }
+
         item {
             Column(
                 modifier = Modifier
