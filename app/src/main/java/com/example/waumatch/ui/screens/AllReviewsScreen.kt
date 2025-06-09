@@ -31,16 +31,13 @@ import coil.compose.rememberAsyncImagePainter
 import com.example.waumatch.ui.theme.OceanBlue
 import com.example.waumatch.ui.theme.SkyBlue
 import com.google.firebase.firestore.FirebaseFirestore
-import kotlin.collections.set
 import com.google.firebase.firestore.FieldPath
-
 
 @Composable
 fun AllReviewsScreen(userId: String, onBackClick: () -> Unit, navController: NavController) {
     val reviews = remember { mutableStateOf<List<ReviewData>>(emptyList()) }
     var filter by remember { mutableStateOf("Todas") }
     val filterOptions = listOf("Todas", "Positivas", "Críticas", "5", "4", "3", "2", "1")
-    val votedReviews = remember { mutableStateMapOf<String, Boolean>() }
 
     LaunchedEffect(userId) {
         loadReviews(userId) { fetchedReviews ->
@@ -92,7 +89,6 @@ fun AllReviewsScreen(userId: String, onBackClick: () -> Unit, navController: Nav
             }
         }
 
-
         item {
             LazyRow(
                 modifier = Modifier
@@ -126,12 +122,7 @@ fun AllReviewsScreen(userId: String, onBackClick: () -> Unit, navController: Nav
             items(filteredReviews) { review ->
                 ReviewItem(
                     review = review,
-                    onClick = { navController.navigate("foreignProfile/${review.idEmisor}") },
-                    votedReviews = votedReviews,
-                    onVoteChanged = { isUseful ->
-                        val key = "${review.idEmisor}${review.comment}"
-                        updateUsefulCount(review.idEmisor, review.idReceptor, review.comment, isUseful, votedReviews[key] ?: false)
-                    }
+                    onClick = { navController.navigate("foreignProfile/${review.idEmisor}") }
                 )
                 Spacer(modifier = Modifier.height(10.dp))
             }
@@ -176,15 +167,8 @@ fun FilterButton(text: String, isSelected: Boolean, onClick: () -> Unit) {
 @Composable
 fun ReviewItem(
     review: ReviewData,
-    onClick: () -> Unit,
-    votedReviews: MutableMap<String, Boolean>,
-    onVoteChanged: (Boolean) -> Unit
+    onClick: () -> Unit
 ) {
-    var usefulCount by remember { mutableStateOf(review.usefulCount) }
-    val voteKey = "${review.idEmisor}${review.comment}"
-    val hasVoted = votedReviews.containsKey(voteKey)
-    val isUseful = votedReviews[voteKey] ?: false
-
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -242,7 +226,6 @@ fun ReviewItem(
                 )
             }
         }
-        Spacer(modifier = Modifier.height(12.dp))
     }
 }
 
@@ -253,10 +236,9 @@ data class ReviewData(
     val nombre: String = "",
     val emisorFoto: String = "",
     val fechaCreacion: String = "",
-    val idReceptor: String = "",
-    val usefulCount: Int = 0
+    val idReceptor: String = ""
 ) {
-    constructor() : this(0, "", "", "", "", "", "", 0)
+    constructor() : this(0, "", "", "", "", "", "")
 }
 
 fun loadReviews(userId: String, onResult: (List<ReviewData>) -> Unit) {
@@ -302,8 +284,7 @@ fun loadReviews(userId: String, onResult: (List<ReviewData>) -> Unit) {
                                 rating = doc.getLong("rating")?.toInt() ?: 0,
                                 fechaCreacion = doc.getString("fechaCreacion") ?: "",
                                 idReceptor = doc.getString("idReceptor") ?: "",
-                                idEmisor = doc.getString("idEmisor") ?: "",
-                                usefulCount = doc.getLong("usefulCount")?.toInt() ?: 0
+                                idEmisor = doc.getString("idEmisor") ?: ""
                             )
                         } catch (e: Exception) {
                             Log.e("FirestoreParse", "Error al convertir documento: ${doc.id}", e)
@@ -322,35 +303,5 @@ fun loadReviews(userId: String, onResult: (List<ReviewData>) -> Unit) {
         .addOnFailureListener { exception ->
             Log.e("FirestoreError", "Error al obtener reseñas", exception)
             onResult(emptyList())
-        }
-}
-
-fun updateUsefulCount(emisorId: String, receptorId: String, comment: String, isUseful: Boolean, previousVote: Boolean) {
-    val db = FirebaseFirestore.getInstance()
-    db.collection("reseñas")
-        .whereEqualTo("idEmisor", emisorId)
-        .whereEqualTo("idReceptor", receptorId)
-        .whereEqualTo("comment", comment)
-        .get()
-        .addOnSuccessListener { querySnapshot ->
-            if (!querySnapshot.isEmpty) {
-                val reviewDoc = querySnapshot.documents.first()
-                val currentCount = reviewDoc.getLong("usefulCount")?.toInt() ?: 0
-                val newCount = when {
-                    !previousVote && isUseful -> currentCount + 1
-                    previousVote && !isUseful && currentCount > 0 -> currentCount - 1
-                    else -> currentCount
-                }
-                reviewDoc.reference.update("usefulCount", newCount)
-                    .addOnSuccessListener {
-                        Log.d("FirestoreUpdate", "Contador de útil actualizado a $newCount")
-                    }
-                    .addOnFailureListener { e ->
-                        Log.e("FirestoreUpdate", "Error al actualizar contador: ${e.message}")
-                    }
-            }
-        }
-        .addOnFailureListener { e ->
-            Log.e("FirestoreQuery", "Error al buscar reseña para actualizar: ${e.message}")
         }
 }
