@@ -38,7 +38,7 @@ fun ChatItem(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 24.dp), // aumenté aquí el vertical de 8 a 16
+                .padding(horizontal = 16.dp, vertical = 24.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(
