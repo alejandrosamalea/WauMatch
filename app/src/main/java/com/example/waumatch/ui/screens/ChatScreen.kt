@@ -28,8 +28,8 @@ fun ChatItem(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp) // menos padding vertical
-            .height(IntrinsicSize.Min) // que se adapte al contenido
+            .padding(vertical = 4.dp)
+            .height(IntrinsicSize.Min)
             .clickable { onClick() },
         color = Color(0xFFBBDEFB),
         shape = MaterialTheme.shapes.medium,
@@ -38,7 +38,7 @@ fun ChatItem(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
+                .padding(horizontal = 16.dp, vertical = 24.dp), // aumenté aquí el vertical de 8 a 16
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(
