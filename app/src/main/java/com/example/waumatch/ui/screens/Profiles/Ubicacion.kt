@@ -67,10 +67,18 @@ fun Ubicacion(navController: NavController) {
 
     fun guardarDatos() {
         if (userId == null || userGeoPoint == null) return
+        val geocoder = Geocoder(context, Locale.getDefault())
+        val addresses = geocoder.getFromLocation(userGeoPoint!!.latitude, userGeoPoint!!.longitude, 1)
+        val provincia = if (!addresses.isNullOrEmpty()) {
+            addresses[0].adminArea ?: "Provincia desconocida"
+        } else {
+            "Provincia desconocida"
+        }
         val data = hashMapOf(
             "latitud" to userGeoPoint!!.latitude,
             "longitud" to userGeoPoint!!.longitude,
-            "location" to selectedLocation
+            "location" to selectedLocation,
+            "provincia" to provincia
         )
         firestore.collection("usuarios")
             .document(userId)
@@ -122,7 +130,6 @@ fun Ubicacion(navController: NavController) {
                                     touchDownY = event.y
                                     false
                                 }
-
                                 android.view.MotionEvent.ACTION_UP -> {
                                     val deltaX = Math.abs(event.x - touchDownX)
                                     val deltaY = Math.abs(event.y - touchDownY)
@@ -156,7 +163,6 @@ fun Ubicacion(navController: NavController) {
                                     }
                                     true
                                 }
-
                                 else -> false
                             }
                         }

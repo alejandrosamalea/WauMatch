@@ -180,7 +180,7 @@ fun HomeScreen(navController: NavController) {
             noEsDelUsuario && coincideBusqueda && coincideComunidad &&
                     dentroDelRadio && coincideTipoAnuncio && coincideTipoMascota &&
                     anuncioActivo
-        }
+        }.sortedBy { it.fechaInicio }
 
         value = lista
     }
