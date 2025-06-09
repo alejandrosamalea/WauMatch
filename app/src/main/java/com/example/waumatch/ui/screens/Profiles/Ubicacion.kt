@@ -152,10 +152,7 @@ fun Ubicacion(navController: NavController) {
 
                                         if (!addresses.isNullOrEmpty()) {
                                             selectedLocation = addresses[0].getAddressLine(0) ?: "Ubicación desconocida"
-                                            var provincia = addresses[0].adminArea
-                                            if (provincia == null) {
-                                                provincia = addresses[0].subAdminArea
-                                            }
+                                            var provincia = addresses[0].subAdminArea
                                             if (provincia == null) {
                                                 provincia = "Provincia desconocida"
                                             }
