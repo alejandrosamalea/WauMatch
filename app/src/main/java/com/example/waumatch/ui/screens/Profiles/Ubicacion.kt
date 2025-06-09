@@ -3,6 +3,7 @@ package com.example.waumatch.ui.screens.Profiles
 import android.annotation.SuppressLint
 import android.location.Geocoder
 import android.preference.PreferenceManager
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -38,6 +39,7 @@ fun Ubicacion(navController: NavController) {
     var mapView by remember { mutableStateOf<MapView?>(null) }
     var userGeoPoint by remember { mutableStateOf<GeoPoint?>(null) }
     var selectedLocation by remember { mutableStateOf("") }
+    var provinciaSeleccionada by remember { mutableStateOf("Provincia desconocida") }
     var touchDownX by remember { mutableStateOf(0f) }
     var touchDownY by remember { mutableStateOf(0f) }
 
@@ -50,6 +52,7 @@ fun Ubicacion(navController: NavController) {
                 val geo = GeoPoint(lat, lon)
                 userGeoPoint = geo
                 selectedLocation = userDoc.getString("location") ?: "Ubicación desconocida"
+                provinciaSeleccionada = userDoc.getString("provincia") ?: "Provincia desconocida"
 
                 mapView?.let { map ->
                     val marker = Marker(map).apply {
@@ -67,18 +70,11 @@ fun Ubicacion(navController: NavController) {
 
     fun guardarDatos() {
         if (userId == null || userGeoPoint == null) return
-        val geocoder = Geocoder(context, Locale.getDefault())
-        val addresses = geocoder.getFromLocation(userGeoPoint!!.latitude, userGeoPoint!!.longitude, 1)
-        val provincia = if (!addresses.isNullOrEmpty()) {
-            addresses[0].adminArea ?: "Provincia desconocida"
-        } else {
-            "Provincia desconocida"
-        }
         val data = hashMapOf(
             "latitud" to userGeoPoint!!.latitude,
             "longitud" to userGeoPoint!!.longitude,
             "location" to selectedLocation,
-            "provincia" to provincia
+            "provincia" to provinciaSeleccionada
         )
         firestore.collection("usuarios")
             .document(userId)
@@ -131,8 +127,8 @@ fun Ubicacion(navController: NavController) {
                                     false
                                 }
                                 android.view.MotionEvent.ACTION_UP -> {
-                                    val deltaX = Math.abs(event.x - touchDownX)
-                                    val deltaY = Math.abs(event.y - touchDownY)
+                                    val deltaX = kotlin.math.abs(event.x - touchDownX)
+                                    val deltaY = kotlin.math.abs(event.y - touchDownY)
                                     if (deltaX < 10 && deltaY < 10) {
                                         val projection = map.projection
                                         val geoPoint = projection.fromPixels(
@@ -153,11 +149,22 @@ fun Ubicacion(navController: NavController) {
                                             geoPoint.longitude,
                                             1
                                         )
-                                        selectedLocation = if (!addresses.isNullOrEmpty()) {
-                                            addresses[0].getAddressLine(0)
-                                                ?: "Ubicación desconocida"
+
+                                        if (!addresses.isNullOrEmpty()) {
+                                            selectedLocation = addresses[0].getAddressLine(0) ?: "Ubicación desconocida"
+                                            var provincia = addresses[0].adminArea
+                                            if (provincia == null) {
+                                                provincia = addresses[0].subAdminArea
+                                            }
+                                            if (provincia == null) {
+                                                provincia = "Provincia desconocida"
+                                            }
+                                            Log.d("Ubicacion", "Provincia detectada: $provincia")
+                                            provinciaSeleccionada = provincia
                                         } else {
-                                            "Ubicación desconocida"
+                                            selectedLocation = "Ubicación desconocida"
+                                            provinciaSeleccionada = "Provincia desconocida"
+                                            Log.d("Ubicacion", "No se encontraron direcciones para la localización")
                                         }
                                         map.invalidate()
                                     }
@@ -179,6 +186,7 @@ fun Ubicacion(navController: NavController) {
                     .padding(16.dp)
             ) {
                 Text(text = "Ubicación: $selectedLocation", color = Color.Black)
+                Text(text = "Provincia: $provinciaSeleccionada", color = Color.Black)
                 Spacer(modifier = Modifier.height(16.dp))
                 Button(
                     onClick = { guardarDatos() },

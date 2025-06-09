@@ -79,6 +79,7 @@ fun ProfileScreen(
     var nombre by remember { mutableStateOf("Sin nombre") }
     var fechaRegistro by remember { mutableStateOf("01/2025") }
     var telefono by remember { mutableStateOf("No disponible") }
+    var provincia by remember { mutableStateOf("No especificada") }
     var subtitle by remember { mutableStateOf("") }
     var about by remember { mutableStateOf("Añade una descripción") }
     val application = context.applicationContext as Application
@@ -156,6 +157,8 @@ fun ProfileScreen(
                         tags = documentSnapshot.get("tags") as? List<String> ?: tags
                         locationText = documentSnapshot.getString("location") ?: "Ubicación no disponible"
                         telefono = documentSnapshot.getString("telefono") ?: "No disponible"
+                        provincia = documentSnapshot.getString("provincia") ?: "No especificada"
+
 
                         val firebaseAvailability = documentSnapshot.get("availability")
                         if (firebaseAvailability != null) {
@@ -661,6 +664,45 @@ fun ProfileScreen(
                                 color = if (telefono == "No disponible") ComposeColor.Gray else ComposeColor.White
                             )
                         }
+                    }
+                }
+            }
+        }
+        item {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp)
+            ) {
+                Text(
+                    text = "Provincia",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = ComposeColor.White,
+                    modifier = Modifier.padding(bottom = 15.dp)
+                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(ComposeColor(0x1A1EB7D9), RoundedCornerShape(12.dp))
+                        .padding(15.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.LocationOn,
+                            contentDescription = "Provincia",
+                            tint = ComposeColor(0xFF2EDFF2),
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = provincia,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = if (provincia == "No especificada") ComposeColor.Gray else ComposeColor.White
+                        )
                     }
                 }
             }
