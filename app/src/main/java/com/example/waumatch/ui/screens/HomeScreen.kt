@@ -334,31 +334,6 @@ fun FiltersPanel(
                     )
                 }
             }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Text(
-                text = "Tipo de Mascota",
-                style = MaterialTheme.typography.labelLarge.copy(
-                    color = DeepNavy,
-                    fontWeight = FontWeight.Medium
-                ),
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.padding(bottom = 12.dp)
-            ) {
-                items(tiposDisponibles) { tipo ->
-                    FilterChip(
-                        text = tipo,
-                        isSelected = selectedTipoMascota == tipo,
-                        onClick = { onTipoMascotaChange(tipo) }
-                    )
-                }
-            }
-
             Text(
                 text = "Distancia máxima: ${selectedDistancia.toInt()} km",
                 style = MaterialTheme.typography.labelLarge.copy(

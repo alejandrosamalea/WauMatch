@@ -203,19 +203,6 @@ fun AnuncioDetalladoScreen(
                                 tint = if (isFav) Color.Red else Color.White
                             )
                         }
-
-                        Spacer(modifier = Modifier.width(8.dp))
-                        IconButton(
-                            onClick = { },
-                            modifier = Modifier
-                                .background(NightBlue.copy(alpha = 0.7f), shape = CircleShape)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Share,
-                                contentDescription = "Compartir",
-                                tint = Color.White
-                            )
-                        }
                     }
                 }
 
