@@ -505,63 +505,67 @@ fun AddScreen(navController: NavController) {
             }
 
         Spacer(modifier = Modifier.height(35.dp))
-        Button(
-            onClick = {
-                if (titulo.isBlank() || descripcion.isBlank() || fechaInicio.isBlank() || fechaFin.isBlank() || location.isBlank()) {
-                    Toast.makeText(context, "Por favor, rellena todos los campos obligatorios", Toast.LENGTH_SHORT).show()
-                    return@Button
-                }
-                if (descripcion.length > MAX_DESCRIPCION) {
-                    Toast.makeText(context, "La descripción es demasiado larga", Toast.LENGTH_SHORT).show()
-                    return@Button
-                }
-                if (titulo.length > MAX_TITULO) {
-                    Toast.makeText(context, "El título es demasiado largo", Toast.LENGTH_SHORT).show()
-                    return@Button
-                }
-                if (latitud == null || longitud == null) {
-                    Toast.makeText(context, "Por favor, selecciona una ubicación válida", Toast.LENGTH_SHORT).show()
-                    return@Button
-                }
-                val start = SimpleDateFormat("dd/M/yyyy", Locale.getDefault()).parse(fechaInicio)
-                val end = SimpleDateFormat("dd/M/yyyy", Locale.getDefault()).parse(fechaFin)
-                if (start != null && end != null && start > end) {
-                    Toast.makeText(context, "La fecha de inicio debe ser anterior a la fecha de fin", Toast.LENGTH_SHORT).show()
-                    return@Button
-                }
-                val nuevoAnuncio = AnuncioEntity(
-                    id = UUID.randomUUID().toString(),
-                    titulo = titulo,
-                    descripcion = descripcion,
-                    fechaInicio = fechaInicio,
-                    fechaFin = fechaFin,
-                    creador = creador,
-                    idCreador = idCreador,
-                    esFavorito = false,
-                    imagenes = imageUris.filterNotNull(),
-                    tipos = tipoAnuncio,
-                    mascotasIds = mascotasSeleccionadas.toList(),
-                    latitud = latitud!!,
-                    longitud = longitud!!
-                )
+            Button(
+                onClick = {
+                    if (titulo.isBlank() || descripcion.isBlank() || fechaInicio.isBlank() || fechaFin.isBlank() || location.isBlank()) {
+                        Toast.makeText(context, "Por favor, rellena todos los campos obligatorios", Toast.LENGTH_SHORT).show()
+                        return@Button
+                    }
+                    if (imageUris[0] == null) {
+                        Toast.makeText(context, "Por favor, selecciona una foto principal", Toast.LENGTH_SHORT).show()
+                        return@Button
+                    }
+                    if (descripcion.length > MAX_DESCRIPCION) {
+                        Toast.makeText(context, "La descripción es demasiado larga", Toast.LENGTH_SHORT).show()
+                        return@Button
+                    }
+                    if (titulo.length > MAX_TITULO) {
+                        Toast.makeText(context, "El título es demasiado largo", Toast.LENGTH_SHORT).show()
+                        return@Button
+                    }
+                    if (latitud == null || longitud == null) {
+                        Toast.makeText(context, "Por favor, selecciona una ubicación válida", Toast.LENGTH_SHORT).show()
+                        return@Button
+                    }
+                    val start = SimpleDateFormat("dd/M/yyyy", Locale.getDefault()).parse(fechaInicio)
+                    val end = SimpleDateFormat("dd/M/yyyy", Locale.getDefault()).parse(fechaFin)
+                    if (start != null && end != null && start > end) {
+                        Toast.makeText(context, "La fecha de inicio debe ser anterior a la fecha de fin", Toast.LENGTH_SHORT).show()
+                        return@Button
+                    }
+                    val nuevoAnuncio = AnuncioEntity(
+                        id = UUID.randomUUID().toString(),
+                        titulo = titulo,
+                        descripcion = descripcion,
+                        fechaInicio = fechaInicio,
+                        fechaFin = fechaFin,
+                        creador = creador,
+                        idCreador = idCreador,
+                        esFavorito = false,
+                        imagenes = imageUris.filterNotNull(),
+                        tipos = tipoAnuncio,
+                        mascotasIds = mascotasSeleccionadas.toList(),
+                        latitud = latitud!!,
+                        longitud = longitud!!
+                    )
 
-                viewModel.agregarAnuncio(nuevoAnuncio, context2)
-                Toast.makeText(context, "Anuncio creado correctamente", Toast.LENGTH_SHORT).show()
-                navController.navigate("home") { popUpTo("home") { inclusive = true } }
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 32.dp),
-            shape = RoundedCornerShape(25.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2EDFF2))
-        ) {
-            Text(
-                text = "Subir anuncio",
-                color = Color(0xFF111826),
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold
-            )
-        }
+                    viewModel.agregarAnuncio(nuevoAnuncio, context2)
+                    Toast.makeText(context, "Anuncio creado correctamente", Toast.LENGTH_SHORT).show()
+                    navController.navigate("home") { popUpTo("home") { inclusive = true } }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 32.dp),
+                shape = RoundedCornerShape(25.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2EDFF2))
+            ) {
+                Text(
+                    text = "Subir anuncio",
+                    color = Color(0xFF111826),
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
     }
     }
 }
