@@ -64,6 +64,23 @@ class ChatViewModel : ViewModel() {
                 }
             }
     }
+    fun markMessagesAsRead(chatId: String) {
+        val currentUserId = currentUser.id
+        val messagesRef = db.collection("chats").document(chatId).collection("messages")
+
+        messagesRef
+            .whereEqualTo("receiverId", currentUserId)
+            .whereEqualTo("leido", false)
+            .get()
+            .addOnSuccessListener { snapshot ->
+                snapshot.documents.forEach { doc ->
+                    messagesRef.document(doc.id).update("leido", true)
+                }
+            }
+            .addOnFailureListener {
+                println("Error marcando mensajes como leídos: ${it.message}")
+            }
+    }
 
     fun sendMessage(toUserId: String, content: String, onChatReady: (String) -> Unit = {}) {
         val chat = _chats.value.find { it.participants.contains(toUserId) && it.participants.contains(currentUser.id) }

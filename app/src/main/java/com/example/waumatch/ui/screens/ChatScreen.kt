@@ -5,9 +5,11 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.waumatch.viewmodel.Chat
@@ -19,29 +21,50 @@ import kotlinx.coroutines.flow.collectLatest
 @Composable
 fun ChatItem(
     otherUserName: String,
+    lastMessage: String,
+    unreadCount: Int,
     onClick: () -> Unit
 ) {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp)
-            .height(80.dp)
+            .padding(vertical = 4.dp) // menos padding vertical
+            .height(IntrinsicSize.Min) // que se adapte al contenido
             .clickable { onClick() },
         color = Color(0xFFBBDEFB),
         shape = MaterialTheme.shapes.medium,
         tonalElevation = 2.dp
     ) {
-        Column(
+        Row(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.Center
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = otherUserName,
-                style = MaterialTheme.typography.titleMedium,
-                color = Color.Black
-            )
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = otherUserName,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color.Black
+                )
+
+            }
+            if (unreadCount > 0) {
+                Box(
+                    modifier = Modifier
+                        .size(24.dp)
+                        .background(Color.Red, shape = MaterialTheme.shapes.small),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = unreadCount.toString(),
+                        color = Color.White,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
         }
     }
 }
@@ -91,13 +114,21 @@ fun ChatScreen(navController: NavController, viewModel: ChatViewModel) {
             chatList
                 .sortedByDescending { it.messages.maxByOrNull { msg -> msg.timestamp }?.timestamp }
                 .forEach { chat ->
-                    val otherUserId = chat.participants.firstOrNull { it != currentUserId } ?: ""
+                    val otherUserId = chat.participants.firstOrNull { it != currentUserId } ?: return@forEach
                     val otherUserName = nombres[otherUserId] ?: "Cargando..."
-                    ChatItem(otherUserName = otherUserName) {
+                    val lastMessage = chat.messages.maxByOrNull { it.timestamp }?.content ?: ""
+                    val unreadCount = chat.messages.count {
+                        it.receiverId == currentUserId && !it.leido
+                    }
+
+                    ChatItem(
+                        otherUserName = otherUserName,
+                        lastMessage = lastMessage,
+                        unreadCount = unreadCount
+                    ) {
                         navController.navigate("chatDetail/$otherUserId")
                     }
                 }
         }
     }
 }
-

@@ -4,5 +4,6 @@ data class Message(
     val senderId: String = "",
     val receiverId: String = "",
     val content: String = "",
-    val timestamp: Timestamp = Timestamp.now()
+    val timestamp: Timestamp = Timestamp.now(),
+    val leido: Boolean = false
 )

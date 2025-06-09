@@ -85,8 +85,10 @@ fun ChatDetailScreen(
     }
 
     LaunchedEffect(chatId) {
-        if (chatId != null) {
-            subscribeToMessages(chatId!!)
+        val id = chatId
+        if (id != null) {
+            subscribeToMessages(id)
+            viewModel.markMessagesAsRead(id)
         }
     }
 
