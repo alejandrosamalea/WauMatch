@@ -1,6 +1,7 @@
 package com.example.waumatch.ui.screens
 
 import android.app.Application
+import android.content.Context
 import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
@@ -16,8 +17,8 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -49,9 +50,6 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 
-
-
-
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -64,18 +62,52 @@ fun HomeScreen(navController: NavController) {
     val anuncios by viewModel.anuncios.collectAsState()
     val mascotas by mascotasViewModel.mascotas.collectAsState()
 
-    // Cargar mascotas cuando cambian los anuncios
     LaunchedEffect(anuncios) {
-        //mascotasViewModel.cargarMascotasParaAnuncios(anuncios)
+        // mascotasViewModel.cargarMascotasParaAnuncios(anuncios)
     }
 
-    var searchQuery by remember { mutableStateOf("") }
-    var filtrarPorComunidad by remember { mutableStateOf(false) }
+    val preferences = remember { context.getSharedPreferences("filters_prefs", Context.MODE_PRIVATE) }
+
+    // Estados para los filtros, inicializados desde SharedPreferences
+    var searchQuery by remember {
+        mutableStateOf(preferences.getString("searchQuery", "") ?: "")
+    }
+    var filtrarPorComunidad by remember {
+        mutableStateOf(preferences.getBoolean("filtrarPorComunidad", false))
+    }
     var showFilters by remember { mutableStateOf(false) }
-    var selectedTipoMascota by remember { mutableStateOf("Todos") }
-    var selectedDistancia by remember { mutableStateOf(300f) }
-    var selectedTipoAnuncio by remember { mutableStateOf("Todos") }
-    var ignorarDistancia by remember { mutableStateOf(false) }
+    var selectedTipoMascota by remember {
+        mutableStateOf(preferences.getString("selectedTipoMascota", "Todos") ?: "Todos")
+    }
+    var selectedDistancia by remember {
+        mutableStateOf(preferences.getFloat("selectedDistancia", 300f))
+    }
+    var selectedTipoAnuncio by remember {
+        mutableStateOf(preferences.getString("selectedTipoAnuncio", "Todos") ?: "Todos")
+    }
+    var ignorarDistancia by remember {
+        mutableStateOf(preferences.getBoolean("ignorarDistancia", false))
+    }
+
+    // Guardar filtros en SharedPreferences cuando cambien
+    LaunchedEffect(searchQuery) {
+        preferences.edit().putString("searchQuery", searchQuery).apply()
+    }
+    LaunchedEffect(filtrarPorComunidad) {
+        preferences.edit().putBoolean("filtrarPorComunidad", filtrarPorComunidad).apply()
+    }
+    LaunchedEffect(selectedTipoMascota) {
+        preferences.edit().putString("selectedTipoMascota", selectedTipoMascota).apply()
+    }
+    LaunchedEffect(selectedDistancia) {
+        preferences.edit().putFloat("selectedDistancia", selectedDistancia).apply()
+    }
+    LaunchedEffect(selectedTipoAnuncio) {
+        preferences.edit().putString("selectedTipoAnuncio", selectedTipoAnuncio).apply()
+    }
+    LaunchedEffect(ignorarDistancia) {
+        preferences.edit().putBoolean("ignorarDistancia", ignorarDistancia).apply()
+    }
 
     val userLocation by produceState<List<Double>?>(initialValue = null) {
         val idUsuario = viewModel.obtenerIdUsuarioActual() ?: ""
