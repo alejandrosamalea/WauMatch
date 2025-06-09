@@ -35,8 +35,6 @@ import com.example.waumatch.viewmodel.CloudinaryManager
 import com.google.firebase.auth.FirebaseAuth
 import com.example.waumatch.viewmodel.ChatViewModel
 
-
-
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -58,11 +56,17 @@ class MainActivity : ComponentActivity() {
                 }
                 Scaffold(
                     bottomBar = {
-                        if (selectedDestination != NavigationItem.Login.route && selectedDestination != NavigationItem.Registrar.route && selectedDestination != NavigationItem.Recuperar.route
-                            && selectedDestination != NavigationItem.Add.route && selectedDestination != NavigationItem.ForeignProfile.route && selectedDestination != NavigationItem.AnuncioDetallado.route
-                            && selectedDestination != NavigationItem.allReviews.route && selectedDestination != NavigationItem.anadirMascota.route && selectedDestination != NavigationItem.AdminMascota.route
-                            && selectedDestination != NavigationItem.Ubicacion.route)
-                        {
+                        if (selectedDestination != NavigationItem.Login.route &&
+                            selectedDestination != NavigationItem.Registrar.route &&
+                            selectedDestination != NavigationItem.Recuperar.route &&
+                            selectedDestination != NavigationItem.Add.route &&
+                            selectedDestination != NavigationItem.ForeignProfile.route &&
+                            selectedDestination != NavigationItem.AnuncioDetallado.route &&
+                            selectedDestination != NavigationItem.allReviews.route &&
+                            selectedDestination != NavigationItem.anadirMascota.route &&
+                            selectedDestination != NavigationItem.AdminMascota.route &&
+                            selectedDestination != NavigationItem.Ubicacion.route
+                        ) {
                             MainNavigationBar(navController)
                         }
                     }
@@ -103,23 +107,19 @@ class MainActivity : ComponentActivity() {
                             val currentUser = FirebaseAuth.getInstance().currentUser
 
                             if (currentUser == null) {
-                                // Si no hay usuario autenticado, redirigir al login
                                 LaunchedEffect(Unit) {
                                     navController.navigate(NavigationItem.Login.route) {
                                         popUpTo(navController.graph.startDestinationId) { inclusive = true }
                                     }
                                 }
                             } else if (userId == null || userId == "{userId}" || userId.isEmpty() || userId == currentUser.uid) {
-                                // Redirigir a ProfileScreen si userId es inválido o es el del usuario autenticado
                                 LaunchedEffect(Unit) {
                                     navController.navigate(NavigationItem.Profile.route) {
                                         popUpTo(NavigationItem.ForeignProfile.route) { inclusive = true }
-                                        // Evitar múltiples instancias de ProfileScreen
                                         launchSingleTop = true
                                     }
                                 }
                             } else {
-                                // Mostrar ForeignProfileScreen para otro usuario
                                 ForeignProfileScreen(
                                     userId = userId,
                                     onBackClick = { navController.popBackStack() },
@@ -128,15 +128,18 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                         composable(
-                            NavigationItem.AnuncioDetallado.route,
-
+                            route = NavigationItem.AnuncioDetallado.route,
+                            arguments = listOf(navArgument("anuncioId") { type = NavType.StringType })
                         ) { backStackEntry ->
                             val anuncioId = backStackEntry.arguments?.getString("anuncioId") ?: ""
-                            AnuncioDetalladoScreen(navController = navController, anuncioId = anuncioId, onBackClick = { navController.popBackStack() })
+                            AnuncioDetalladoScreen(
+                                navController = navController,
+                                anuncioId = anuncioId,
+                                onBackClick = { navController.popBackStack() }
+                            )
                         }
-
                         composable(
-                            route = "allReviews/{userId}",
+                            route = NavigationItem.allReviews.route,
                             arguments = listOf(navArgument("userId") { type = NavType.StringType })
                         ) { backStackEntry ->
                             val userId = backStackEntry.arguments?.getString("userId") ?: ""
@@ -147,35 +150,26 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                         composable(NavigationItem.anadirMascota.route) {
-                            AnadirMascota(
-                                navController = navController
-                            )
+                            AnadirMascota(navController = navController)
                         }
                         composable(NavigationItem.AdminMascota.route) {
-                            AdminMascota(
-                                navController = navController
-                            )
+                            AdminMascota(navController = navController)
                         }
                         composable(
-                            route = "editarmascota/{mascotaId}",
+                            route = NavigationItem.EditarMascota.route,
                             arguments = listOf(navArgument("mascotaId") { type = NavType.StringType })
                         ) { backStackEntry ->
                             val mascotaId = backStackEntry.arguments?.getString("mascotaId") ?: ""
-
                             EditarMascota(
                                 navController = navController,
                                 mascotaId = mascotaId
                             )
                         }
-
-
                         composable(NavigationItem.Ubicacion.route) {
-                            Ubicacion(
-                                navController = navController
-                            )
+                            Ubicacion(navController = navController)
                         }
                         composable(
-                            route = "mascotaDetailsScreen/{UIdUsuario}/{mascotaId}",
+                            route = NavigationItem.MascotaDetails.route,
                             arguments = listOf(
                                 navArgument("UIdUsuario") { type = NavType.StringType },
                                 navArgument("mascotaId") { type = NavType.StringType }
@@ -183,7 +177,6 @@ class MainActivity : ComponentActivity() {
                         ) { backStackEntry ->
                             val userId = backStackEntry.arguments?.getString("UIdUsuario") ?: ""
                             val mascotaId = backStackEntry.arguments?.getString("mascotaId") ?: ""
-
                             MascotaDetailsScreen(
                                 navController = navController,
                                 mascotaId = mascotaId,
@@ -191,13 +184,18 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                         composable(NavigationItem.MisAnuncios.route) {
-                            backStackEntry ->
-
-                            MisAnunciosScreen(
-                                navController = navController,
+                            MisAnunciosScreen(navController = navController)
+                        }
+                        composable(
+                            route = NavigationItem.ForeignAds.route,
+                            arguments = listOf(navArgument("userId") { type = NavType.StringType })
+                        ) { backStackEntry ->
+                            val userId = backStackEntry.arguments?.getString("userId") ?: ""
+                            ForeignAdsScreen(
+                                userId = userId,
+                                navController = navController
                             )
                         }
-
                     }
                 }
             }

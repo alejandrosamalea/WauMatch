@@ -67,7 +67,7 @@ fun AnuncioDetalladoScreen(
     val context = LocalContext.current
     val application = context.applicationContext as Application
     val viewModel: AnuncioViewModel = viewModel(factory = AnuncioViewModelFactory(application))
-
+    val userId2 = FirebaseAuth.getInstance().currentUser?.uid
     val anuncio = viewModel.getAnuncioById(anuncioId).collectAsState(initial = null).value
     val auth = FirebaseAuth.getInstance()
     var localProfileImage by remember { mutableStateOf<String?>(null) }
@@ -191,6 +191,7 @@ fun AnuncioDetalladoScreen(
                             .align(Alignment.TopEnd)
                             .padding(16.dp)
                     ) {
+                        if (anuncio.idCreador != userId2) {
                         IconButton(
                             onClick = { viewModel.toggleFavorito(anuncio) },
                             modifier = Modifier
@@ -203,6 +204,7 @@ fun AnuncioDetalladoScreen(
                                 tint = if (isFav) Color.Red else Color.White
                             )
                         }
+                    }
                     }
                 }
 
@@ -378,7 +380,7 @@ fun AnuncioDetalladoScreen(
                 }
             }
 
-            // Botón de contactar
+            if (anuncio.idCreador != userId2) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -410,6 +412,7 @@ fun AnuncioDetalladoScreen(
                     )
                 }
             }
+        }
         }
     }
 }

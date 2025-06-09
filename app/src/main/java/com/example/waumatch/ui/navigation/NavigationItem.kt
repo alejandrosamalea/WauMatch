@@ -25,4 +25,5 @@ sealed class NavigationItem(
     object EditarMascota : NavigationItem("editarmascota/{mascotaId}", R.drawable.profile, "Gestionar Mascotas")
     object MascotaDetails : NavigationItem("mascotaDetailsScreen/{UIdUsuario}/{mascotaId}", R.drawable.perro, "Mascota Detalles")
     object MisAnuncios : NavigationItem("misAnuncios", R.drawable.baseline_visibility_24, "Mis Anuncios")
+    object ForeignAds : NavigationItem("foreignAds/{userId}", R.drawable.baseline_visibility_24, "Anuncios de Otros")
 }

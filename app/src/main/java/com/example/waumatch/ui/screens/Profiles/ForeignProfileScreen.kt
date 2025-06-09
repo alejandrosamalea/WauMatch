@@ -7,6 +7,7 @@ import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -71,7 +72,20 @@ fun ForeignProfileScreen(userId: String, onBackClick: () -> Unit, navController:
     var reviews by remember { mutableStateOf(listOf<ReviewData>()) }
     var userReview by remember { mutableStateOf<ReviewData?>(null) }
     var isEditingReview by remember { mutableStateOf(false) }
-
+    var adCount by remember { mutableStateOf(0) }
+    val db2 = FirebaseFirestore.getInstance()
+    LaunchedEffect(userId) {
+        db2.collection("anuncios")
+            .whereEqualTo("idCreador", userId)
+            .get()
+            .addOnSuccessListener { querySnapshot ->
+                adCount = querySnapshot.size()
+            }
+            .addOnFailureListener { exception ->
+                Log.e("Firestore", "Error al contar anuncios: ${exception.message}")
+                adCount = 0
+            }
+    }
     val averageRating = if (reviews.isNotEmpty()) {
         String.format("%.1f", reviews.map { it.rating }.average())
     } else {
@@ -422,7 +436,13 @@ fun ForeignProfileScreen(userId: String, onBackClick: () -> Unit, navController:
                                     modifier = Modifier.padding(top = 5.dp)
                                 )
                             }
-                            StatItem(number = "127", label = "Cuidados")
+                            StatItem(
+                                number = adCount.toString(),
+                                label = if (adCount == 1) "Anuncio" else "Anuncios",
+                                modifier = Modifier.clickable {
+                                    navController.navigate("foreignAds/$userId")
+                                }
+                            )
                             val (mesReg, anioReg) = fechaRegistro.split("/").map { it.toInt() }
                             val totalMeses = (Calendar.getInstance().get(Calendar.YEAR) - anioReg) * 12 + (Calendar.getInstance().get(Calendar.MONTH) + 1 - mesReg)
                             StatItem(
