@@ -668,45 +668,9 @@ fun ProfileScreen(
                 }
             }
         }
-        item {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(20.dp)
-            ) {
-                Text(
-                    text = "Provincia",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = ComposeColor.White,
-                    modifier = Modifier.padding(bottom = 15.dp)
-                )
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(ComposeColor(0x1A1EB7D9), RoundedCornerShape(12.dp))
-                        .padding(15.dp)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.LocationOn,
-                            contentDescription = "Provincia",
-                            tint = ComposeColor(0xFF2EDFF2),
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = provincia,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = if (provincia == "No especificada") ComposeColor.Gray else ComposeColor.White
-                        )
-                    }
-                }
-            }
-        }
+        if (!isEditing) {
+
+
         item {
             val mascotas = remember { mutableStateListOf<Mascota>() }
             val userId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
@@ -839,7 +803,45 @@ fun ProfileScreen(
                 }
             }
         }
-
+            item {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp)
+                ) {
+                    Text(
+                        text = "Provincia",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = ComposeColor.White,
+                        modifier = Modifier.padding(bottom = 15.dp)
+                    )
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(ComposeColor(0x1A1EB7D9), RoundedCornerShape(12.dp))
+                            .padding(15.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.LocationOn,
+                                contentDescription = "Provincia",
+                                tint = ComposeColor(0xFF2EDFF2),
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = provincia,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = if (provincia == "No especificada") ComposeColor.Gray else ComposeColor.White
+                            )
+                        }
+                    }
+                }
+            }
         item {
             Column(
                 modifier = Modifier
@@ -924,6 +926,7 @@ fun ProfileScreen(
                 }
             }
         }
+        }
 
         item {
             Column(
@@ -960,62 +963,63 @@ fun ProfileScreen(
                 }
             }
         }
-
-        item {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(20.dp)
-            ) {
-                Text(
-                    text = "Últimas Reseñas",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = ComposeColor.White,
-                    modifier = Modifier.padding(bottom = 15.dp)
-                )
+        if (!isEditing) {
+            item {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(ComposeColor(0x1A1EB7D9), RoundedCornerShape(12.dp))
-                        .padding(15.dp)
-                ) {
-                    if (reviews.isEmpty()) {
-                        Text(
-                            text = "Aún no tienes reseñas",
-                            fontSize = 14.sp,
-                            color = ComposeColor.White,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(8.dp),
-                            textAlign = TextAlign.Center
-                        )
-                    } else {
-                        reviews.forEach { review ->
-                            Review(
-                                reviewerImageUrl = review.reviewerImageUrl,
-                                reviewerName = review.reviewerName,
-                                rating = review.rating,
-                                reviewText = review.comment,
-                                onClick = { navController.navigate("foreignProfile/${review.idEmisor}") }
-                            )
-                            Spacer(modifier = Modifier.height(10.dp))
-                        }
-                    }
-                }
-                TextButton(
-                    onClick = {
-                        navController.navigate("allReviews/${currentUser?.uid}")
-                    },
-                    modifier = Modifier
-                        .align(Alignment.Start)
-                        .padding(top = 10.dp)
+                        .padding(20.dp)
                 ) {
                     Text(
-                        text = "Ver todas las reseñas",
-                        color = ComposeColor(0xFF2EDFF2),
-                        fontSize = 16.sp
+                        text = "Últimas Reseñas",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = ComposeColor.White,
+                        modifier = Modifier.padding(bottom = 15.dp)
                     )
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(ComposeColor(0x1A1EB7D9), RoundedCornerShape(12.dp))
+                            .padding(15.dp)
+                    ) {
+                        if (reviews.isEmpty()) {
+                            Text(
+                                text = "Aún no tienes reseñas",
+                                fontSize = 14.sp,
+                                color = ComposeColor.White,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(8.dp),
+                                textAlign = TextAlign.Center
+                            )
+                        } else {
+                            reviews.forEach { review ->
+                                Review(
+                                    reviewerImageUrl = review.reviewerImageUrl,
+                                    reviewerName = review.reviewerName,
+                                    rating = review.rating,
+                                    reviewText = review.comment,
+                                    onClick = { navController.navigate("foreignProfile/${review.idEmisor}") }
+                                )
+                                Spacer(modifier = Modifier.height(10.dp))
+                            }
+                        }
+                    }
+                    TextButton(
+                        onClick = {
+                            navController.navigate("allReviews/${currentUser?.uid}")
+                        },
+                        modifier = Modifier
+                            .align(Alignment.Start)
+                            .padding(top = 10.dp)
+                    ) {
+                        Text(
+                            text = "Ver todas las reseñas",
+                            color = ComposeColor(0xFF2EDFF2),
+                            fontSize = 16.sp
+                        )
+                    }
                 }
             }
         }
