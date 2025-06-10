@@ -1,6 +1,8 @@
 package com.example.waumatch.ui.screens
 
 import android.app.Application
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -24,6 +26,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun FavoritesScreen(navController: NavController) {
     val context = LocalContext.current
