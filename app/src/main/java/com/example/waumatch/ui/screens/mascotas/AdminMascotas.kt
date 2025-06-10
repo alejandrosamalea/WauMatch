@@ -94,6 +94,39 @@ fun AdminMascota(
                 modifier = Modifier.padding(16.dp)
             ) {
                 items(mascotas) { mascota ->
+                    var showDialog by remember { mutableStateOf(false) }
+
+                    if (showDialog) {
+                        AlertDialog(
+                            onDismissRequest = { showDialog = false },
+                            confirmButton = {
+                                TextButton(onClick = {
+                                    repository.eliminarMascota(
+                                        mascota.id,
+                                        onSuccess = {
+                                            mascotas = mascotas.filterNot { it.id == mascota.id }
+                                            showDialog = false
+                                        },
+                                        onError = {
+                                            android.util.Log.e("ManagePets", "Error", it)
+                                            showDialog = false
+                                        }
+                                    )
+                                }) {
+                                    Text("Confirmar", color = Color.Red)
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { showDialog = false }) {
+                                    Text("Cancelar")
+                                }
+                            },
+                            title = { Text("Eliminar Mascota") },
+                            text = { Text("¿Estás seguro de que deseas eliminar esta mascota? Esta acción no se puede deshacer.") },
+                            containerColor = Color.DarkGray
+                        )
+                    }
+
                     ElevatedCard(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -164,22 +197,7 @@ fun AdminMascota(
                                 }
 
                                 IconButton(
-                                    onClick = {
-                                        repository.eliminarMascota(
-                                            mascota.id,
-                                            onSuccess = {
-                                                mascotas =
-                                                    mascotas.filterNot { it.id == mascota.id }
-                                            },
-                                            onError = {
-                                                android.util.Log.e(
-                                                    "ManagePets",
-                                                    "Error",
-                                                    it
-                                                )
-                                            }
-                                        )
-                                    },
+                                    onClick = { showDialog = true },
                                     modifier = Modifier
                                         .size(40.dp)
                                         .background(AquaLight, RoundedCornerShape(8.dp))
@@ -191,7 +209,6 @@ fun AdminMascota(
                                     )
                                 }
                             }
-
                         }
                     }
                 }
