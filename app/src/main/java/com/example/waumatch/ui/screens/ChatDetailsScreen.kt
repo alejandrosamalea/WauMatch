@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -32,7 +33,6 @@ data class MessageWithId(
     val id: String,
     val message: Message
 )
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatDetailScreen(
@@ -46,6 +46,8 @@ fun ChatDetailScreen(
     var userName by remember { mutableStateOf<String?>(null) }
     var messagesListener by remember { mutableStateOf<ListenerRegistration?>(null) }
     val chatId by viewModel.chatIdWithUser.collectAsState()
+    // Agregar LazyListState para controlar el desplazamiento
+    val lazyListState = rememberLazyListState()
 
     val db = FirebaseFirestore.getInstance()
 
@@ -84,6 +86,13 @@ fun ChatDetailScreen(
             }
     }
 
+    // Desplazar al último mensaje cuando cambie la lista de mensajes
+    LaunchedEffect(messages.size) {
+        if (messages.isNotEmpty()) {
+            lazyListState.scrollToItem(messages.size - 1)
+        }
+    }
+
     LaunchedEffect(chatId) {
         val id = chatId
         if (id != null) {
@@ -97,7 +106,6 @@ fun ChatDetailScreen(
             messagesListener?.remove()
         }
     }
-    var showProfilePopup by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -109,7 +117,7 @@ fun ChatDetailScreen(
                         Text(
                             text = "${userName ?: "Cargando..."}",
                             modifier = Modifier
-                                .clickable {  navController.navigate("foreignProfile/$userId") }
+                                .clickable { navController.navigate("foreignProfile/$userId") }
                         )
                     }
                 },
@@ -143,7 +151,8 @@ fun ChatDetailScreen(
                     .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
                 LazyColumn(
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    state = lazyListState // Vincular LazyListState al LazyColumn
                 ) {
                     itemsIndexed(messages) { index, messageWithId ->
                         val message = messageWithId.message
@@ -166,7 +175,6 @@ fun ChatDetailScreen(
                         } else null
 
                         Column {
-                            // Fecha si es el primer mensaje del día
                             if (date != previousDate) {
                                 Text(
                                     text = date,
@@ -239,9 +247,7 @@ fun ChatDetailScreen(
                     TextField(
                         value = messageText,
                         onValueChange = { messageText = it },
-                        placeholder = {
-                            Text("Escribe un mensaje")
-                        },
+                        placeholder = { Text("Escribe un mensaje") },
                         modifier = Modifier
                             .weight(1f)
                             .heightIn(min = 56.dp)
