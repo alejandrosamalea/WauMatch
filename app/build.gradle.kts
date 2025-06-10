@@ -43,7 +43,9 @@ android {
 }
 
 dependencies {
-
+    // Añade la dependencia de OneSignal
+    implementation ("com.onesignal:OneSignal:[5.1.6, 5.1.99]")
+    // Dependencias existentes
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)

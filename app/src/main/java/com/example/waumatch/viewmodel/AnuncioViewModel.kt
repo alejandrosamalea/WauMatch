@@ -211,17 +211,6 @@ class AnuncioViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-
-    private fun parseFechaAInMillis(fechaStr: String): Long {
-        val sdf = java.text.SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-        return try {
-            val date = sdf.parse(fechaStr)
-            date?.time ?: 0L
-        } catch (e: Exception) {
-            0L
-        }
-    }
-
     private fun guardarAnuncioEnFirebase(anuncio: AnuncioEntity, context: Context) {
         val auth = FirebaseAuth.getInstance()
         val userUid = auth.currentUser?.uid ?: return

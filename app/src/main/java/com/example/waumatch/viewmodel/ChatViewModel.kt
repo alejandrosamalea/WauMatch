@@ -10,6 +10,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.Timestamp
+import okhttp3.*
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import java.io.IOException
 
 class ChatViewModel : ViewModel() {
 
@@ -25,6 +28,47 @@ class ChatViewModel : ViewModel() {
 
     init {
         fetchChats()
+    }
+
+    private fun sendNotificationToUser(receiverId: String, senderName: String, messageContent: String, chatId: String) {
+        val client = OkHttpClient()
+        val onesignalAppId = "038e24e7-eca7-426a-868c-f513079bb67c" // Reemplaza con tu App ID
+        val onesignalApiKey = "os_v2_app_aohcjz7mu5bgvbum6ujqpg5wpqlexcqsdhaetqfr7knivg2apiqvd3noutm2smqy43ca72e2z3f5vb543ag4gru3mudccsdtjcrn2vy" // Reemplaza con tu REST API Key
+
+        val json = """
+        {
+            "app_id": "$onesignalAppId",
+            "include_external_user_ids": ["$receiverId"],
+            "contents": {"en": "$senderName: $messageContent"},
+            "headings": {"en": "Nuevo mensaje en WauMatch"},
+            "data": {"chatId": "$chatId"}
+        }
+    """.trimIndent()
+
+        val body = RequestBody.create(
+            "application/json; charset=utf-8".toMediaTypeOrNull(),
+            json
+        )
+
+        val request = Request.Builder()
+            .url("https://onesignal.com/api/v1/notifications")
+            .post(body)
+            .addHeader("Authorization", "Basic $onesignalApiKey")
+            .addHeader("Content-Type", "application/json")
+            .build()
+
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val response = client.newCall(request).execute()
+                if (response.isSuccessful) {
+                    println("Notificación enviada con éxito")
+                } else {
+                    println("Error al enviar notificación: ${response.message}")
+                }
+            } catch (e: IOException) {
+                println("Error al enviar notificación: ${e.message}")
+            }
+        }
     }
 
     private fun fetchChats() {
@@ -92,6 +136,9 @@ class ChatViewModel : ViewModel() {
             timestamp = Timestamp.now()
         )
 
+        // Obtén el nombre del remitente
+        val senderName = currentUser.name ?: "Usuario"
+
         if (chat == null) {
             val newChat = Chat(
                 participants = listOf(currentUser.id, toUserId),
@@ -104,6 +151,7 @@ class ChatViewModel : ViewModel() {
                     documentRef.collection("messages")
                         .add(message)
                         .addOnSuccessListener {
+                            sendNotificationToUser(toUserId, senderName, content, chatId)
                             onChatReady(chatId)
                         }
                         .addOnFailureListener { e ->
@@ -118,6 +166,7 @@ class ChatViewModel : ViewModel() {
                 db.collection("chats").document(chatId).collection("messages")
                     .add(message)
                     .addOnSuccessListener {
+                        sendNotificationToUser(toUserId, senderName, content, chatId)
                         onChatReady(chatId)
                     }
                     .addOnFailureListener { e ->
@@ -126,6 +175,7 @@ class ChatViewModel : ViewModel() {
             } ?: println("Error: chat.id es null, no se puede guardar mensaje")
         }
     }
+
     private val _chatIdWithUser = MutableStateFlow<String?>(null)
     val chatIdWithUser: StateFlow<String?> = _chatIdWithUser
 

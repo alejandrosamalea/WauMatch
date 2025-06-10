@@ -2,9 +2,11 @@ package com.example.waumatch
 
 import RecuperarScreen
 import android.content.pm.ActivityInfo
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.LaunchedEffect
@@ -34,10 +36,29 @@ import com.example.waumatch.viewmodel.AnuncioViewModel
 import com.example.waumatch.viewmodel.CloudinaryManager
 import com.google.firebase.auth.FirebaseAuth
 import com.example.waumatch.viewmodel.ChatViewModel
+import com.onesignal.OneSignal
+import com.onesignal.debug.LogLevel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
+    private val ONESIGNAL_APP_ID = "038e24e7-eca7-426a-868c-f513079bb67c" // Reemplaza con tu App ID
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Enable verbose logging for debugging (remove in production)
+        OneSignal.Debug.logLevel = LogLevel.VERBOSE
+        // Initialize with your OneSignal App ID
+        OneSignal.initWithContext(this, "038e24e7-eca7-426a-868c-f513079bb67c")
+        // Use this method to prompt for push notifications.
+        // We recommend removing this method after testing and instead use In-App Messages to prompt for notification permission.
+        CoroutineScope(Dispatchers.IO).launch {
+            OneSignal.Notifications.requestPermission(true)
+        }
+
+
         requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         CloudinaryManager.init(this)
         setContent {
@@ -49,11 +70,23 @@ class MainActivity : ComponentActivity() {
 
                 LaunchedEffect(Unit) {
                     if (auth.currentUser != null) {
+                        fun setUserId(userId: String) {
+                            CoroutineScope(Dispatchers.Main).launch {
+                                OneSignal.login(userId)
+                            }
+                        }
+                        val auth = FirebaseAuth.getInstance()
+
+                        auth.currentUser?.let { setUserId(it.uid) }
+
                         navController.navigate(NavigationItem.Home.route) {
                             popUpTo(NavigationItem.Login.route) { inclusive = true }
                         }
                     }
                 }
+
+                RequestNotificationPermission();
+
                 Scaffold(
                     bottomBar = {
                         if (selectedDestination != NavigationItem.Login.route &&
