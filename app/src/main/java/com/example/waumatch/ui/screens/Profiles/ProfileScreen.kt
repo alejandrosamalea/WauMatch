@@ -568,256 +568,274 @@ fun ProfileScreen(
                 }
             }
         }
-        item {
-            val mascotas = remember { mutableStateListOf<Mascota>() }
-            val userId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
+        if (!isEditing) {
+            item {
+                val mascotas = remember { mutableStateListOf<Mascota>() }
+                val userId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
 
-            LaunchedEffect(userId) {
-                if (userId.isNotBlank()) {
-                    val db = FirebaseFirestore.getInstance()
-                    try {
-                        val mascotasSnapshot = db.collection("mascotas")
-                            .document(userId)
-                            .collection("lista")
-                            .get()
-                            .await()
-                        mascotas.clear()
-                        mascotas.addAll(
-                            mascotasSnapshot.documents.mapNotNull { doc ->
-                                doc.toObject(Mascota::class.java)?.copy(id = doc.id)
-                            }
-                        )
-                    } catch (e: Exception) {
-                        Log.e("ProfileScreen", "Error al cargar mascotas: ${e.message}")
+                LaunchedEffect(userId) {
+                    if (userId.isNotBlank()) {
+                        val db = FirebaseFirestore.getInstance()
+                        try {
+                            val mascotasSnapshot = db.collection("mascotas")
+                                .document(userId)
+                                .collection("lista")
+                                .get()
+                                .await()
+                            mascotas.clear()
+                            mascotas.addAll(
+                                mascotasSnapshot.documents.mapNotNull { doc ->
+                                    doc.toObject(Mascota::class.java)?.copy(id = doc.id)
+                                }
+                            )
+                        } catch (e: Exception) {
+                            Log.e("ProfileScreen", "Error al cargar mascotas: ${e.message}")
+                        }
                     }
                 }
-            }
 
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 10.dp)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxWidth()
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 10.dp)
                 ) {
-                    Text(
-                        text = "Mis Mascotas",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = ComposeColor.White
-                    )
-                    Box {
-                        var expanded by remember { mutableStateOf(false) }
-                        IconButton(onClick = { expanded = true }) {
-                            Icon(
-                                imageVector = Icons.Default.Add,
-                                contentDescription = "Añadir mascota",
-                                tint = ComposeColor(0xFF2EDFF2)
-                            )
-                        }
-                        DropdownMenu(
-                            expanded = expanded,
-                            onDismissRequest = { expanded = false },
-                            modifier = Modifier.background(ComposeColor(0xFF1A1EB7D9))
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("Agregar mascota", color = ComposeColor.White) },
-                                onClick = {
-                                    expanded = false
-                                    navController.navigate("anadirMascota")
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Gestionar mascotas", color = ComposeColor.White) },
-                                onClick = {
-                                    expanded = false
-                                    navController.navigate("adminMascota")
-                                }
-                            )
-                        }
-                    }
-                }
-
-                if (mascotas.isNotEmpty()) {
-                    LazyRow(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        items(mascotas) { mascota ->
-                            Column(
-                                modifier = Modifier
-                                    .width(100.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(
-                                        color = ComposeColor(0x1A1EB7D9),
-                                        shape = RoundedCornerShape(12.dp)
-                                    )
-                                    .clickable {
+                        Text(
+                            text = "Mis Mascotas",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = ComposeColor.White
+                        )
+                        Box {
+                            var expanded by remember { mutableStateOf(false) }
+                            IconButton(onClick = { expanded = true }) {
+                                Icon(
+                                    imageVector = Icons.Default.Add,
+                                    contentDescription = "Añadir mascota",
+                                    tint = ComposeColor(0xFF2EDFF2)
+                                )
+                            }
+                            DropdownMenu(
+                                expanded = expanded,
+                                onDismissRequest = { expanded = false },
+                                modifier = Modifier.background(ComposeColor(0xFF1A1EB7D9))
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Agregar mascota", color = ComposeColor.White) },
+                                    onClick = {
+                                        expanded = false
+                                        navController.navigate("anadirMascota")
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            "Gestionar mascotas",
+                                            color = ComposeColor.White
+                                        )
+                                    },
+                                    onClick = {
+                                        expanded = false
                                         navController.navigate("adminMascota")
                                     }
-                                    .padding(8.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Image(
-                                    painter = rememberAsyncImagePainter(
-                                        model = if (mascota.imagenes.isNotEmpty()) mascota.imagenes[0] else "https://via.placeholder.com/80",
-                                        placeholder = painterResource(id = R.drawable.profile)
-                                    ),
-                                    contentDescription = "${mascota.nombre} image",
-                                    modifier = Modifier
-                                        .size(60.dp)
-                                        .clip(CircleShape)
-                                        .border(1.dp, ComposeColor(0xFF2EDFF2), CircleShape),
-                                    contentScale = ContentScale.Crop
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(
-                                    text = mascota.nombre,
-                                    color = ComposeColor.White,
-                                    fontSize = 14.sp,
-                                    textAlign = TextAlign.Center,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
                                 )
                             }
                         }
                     }
-                } else {
-                    Text(
-                        text = "No tienes mascotas registradas",
-                        color = ComposeColor.White,
-                        fontSize = 16.sp,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp),
-                        textAlign = TextAlign.Center
-                    )
-                }
-            }
-        }
-        item {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(20.dp)
-            ) {
-                Text(
-                    text = "Provincia",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = ComposeColor.White,
-                    modifier = Modifier.padding(bottom = 15.dp)
-                )
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(ComposeColor(0x1A1EB7D9), RoundedCornerShape(12.dp))
-                        .padding(15.dp)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.LocationOn,
-                            contentDescription = "Provincia",
-                            tint = ComposeColor(0xFF2EDFF2),
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
+
+                    if (mascotas.isNotEmpty()) {
+                        LazyRow(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            items(mascotas) { mascota ->
+                                Column(
+                                    modifier = Modifier
+                                        .width(100.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(
+                                            color = ComposeColor(0x1A1EB7D9),
+                                            shape = RoundedCornerShape(12.dp)
+                                        )
+                                        .clickable {
+                                            navController.navigate("adminMascota")
+                                        }
+                                        .padding(8.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Image(
+                                        painter = rememberAsyncImagePainter(
+                                            model = if (mascota.imagenes.isNotEmpty()) mascota.imagenes[0] else "https://via.placeholder.com/80",
+                                            placeholder = painterResource(id = R.drawable.profile)
+                                        ),
+                                        contentDescription = "${mascota.nombre} image",
+                                        modifier = Modifier
+                                            .size(60.dp)
+                                            .clip(CircleShape)
+                                            .border(1.dp, ComposeColor(0xFF2EDFF2), CircleShape),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        text = mascota.nombre,
+                                        color = ComposeColor.White,
+                                        fontSize = 14.sp,
+                                        textAlign = TextAlign.Center,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                            }
+                        }
+                    } else {
                         Text(
-                            text = provincia,
+                            text = "No tienes mascotas registradas",
+                            color = ComposeColor.White,
                             fontSize = 16.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = if (provincia == "No especificada") ComposeColor.Gray else ComposeColor.White
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp),
+                            textAlign = TextAlign.Center
                         )
                     }
                 }
             }
-        }
-        item {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(20.dp)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxWidth()
+            item {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp)
                 ) {
                     Text(
-                        text = "Ubicación",
+                        text = "Provincia",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
-                        color = ComposeColor.White
+                        color = ComposeColor.White,
+                        modifier = Modifier.padding(bottom = 15.dp)
                     )
-                    if (!isLocationPermissionGranted) {
-                        IconButton(onClick = { locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION) }) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(ComposeColor(0x1A1EB7D9), RoundedCornerShape(12.dp))
+                            .padding(15.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
                             Icon(
                                 imageVector = Icons.Default.LocationOn,
-                                contentDescription = "Solicitar ubicación",
-                                tint = ComposeColor(0xFF2EDFF2)
+                                contentDescription = "Provincia",
+                                tint = ComposeColor(0xFF2EDFF2),
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = provincia,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = if (provincia == "No especificada") ComposeColor.Gray else ComposeColor.White
                             )
                         }
                     }
                 }
+            }
+            item {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(ComposeColor(0x1A1EB7D9), RoundedCornerShape(12.dp))
-                        .padding(15.dp)
+                        .padding(20.dp)
                 ) {
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                        modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
-                            text = locationText,
-                            color = ComposeColor.White,
-                            fontSize = 16.sp,
-                            modifier = Modifier.weight(1f)
+                            text = "Ubicación",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = ComposeColor.White
                         )
-                        if (isEditing) {
-                            Button(
-                                onClick = {
-                                    if (isLocationPermissionGranted) {
-                                        getLastKnownLocation(fusedLocationClient, context) { address ->
-                                            locationText = address
-                                            if (currentUser != null) {
-                                                db.collection("usuarios").document(currentUser.uid)
-                                                    .update("location", address)
-                                                    .addOnFailureListener { e ->
-                                                        Log.e("ProfileScreen", "Error al actualizar ubicación: ${e.message}")
-                                                    }
-                                            }
-                                        }
-                                    } else {
-                                        locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
-                                    }
-                                },
-                                colors = ButtonDefaults.buttonColors(containerColor = ComposeColor(0xFF2EDFF2))
-                            ) {
-                                Text("Actualizar", color = ComposeColor.White, fontSize = 14.sp)
+                        if (!isLocationPermissionGranted) {
+                            IconButton(onClick = { locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION) }) {
+                                Icon(
+                                    imageVector = Icons.Default.LocationOn,
+                                    contentDescription = "Solicitar ubicación",
+                                    tint = ComposeColor(0xFF2EDFF2)
+                                )
                             }
                         }
                     }
-                    TextButton(
-                        onClick = { navController.navigate("test") },
+                    Column(
                         modifier = Modifier
-                            .align(Alignment.End)
-                            .padding(top = 8.dp)
+                            .fillMaxWidth()
+                            .background(ComposeColor(0x1A1EB7D9), RoundedCornerShape(12.dp))
+                            .padding(15.dp)
                     ) {
-                        Text(
-                            text = "Ver mapa",
-                            color = ComposeColor(0xFF2EDFF2),
-                            fontSize = 12.sp
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = locationText,
+                                color = ComposeColor.White,
+                                fontSize = 16.sp,
+                                modifier = Modifier.weight(1f)
+                            )
+                            if (isEditing) {
+                                Button(
+                                    onClick = {
+                                        if (isLocationPermissionGranted) {
+                                            getLastKnownLocation(
+                                                fusedLocationClient,
+                                                context
+                                            ) { address ->
+                                                locationText = address
+                                                if (currentUser != null) {
+                                                    db.collection("usuarios")
+                                                        .document(currentUser.uid)
+                                                        .update("location", address)
+                                                        .addOnFailureListener { e ->
+                                                            Log.e(
+                                                                "ProfileScreen",
+                                                                "Error al actualizar ubicación: ${e.message}"
+                                                            )
+                                                        }
+                                                }
+                                            }
+                                        } else {
+                                            locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                                        }
+                                    },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = ComposeColor(
+                                            0xFF2EDFF2
+                                        )
+                                    )
+                                ) {
+                                    Text("Actualizar", color = ComposeColor.White, fontSize = 14.sp)
+                                }
+                            }
+                        }
+                        TextButton(
+                            onClick = { navController.navigate("test") },
+                            modifier = Modifier
+                                .align(Alignment.End)
+                                .padding(top = 8.dp)
+                        ) {
+                            Text(
+                                text = "Ver mapa",
+                                color = ComposeColor(0xFF2EDFF2),
+                                fontSize = 12.sp
+                            )
+                        }
                     }
                 }
             }
@@ -857,61 +875,63 @@ fun ProfileScreen(
                 }
             }
         }
-        item {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(20.dp)
-            ) {
-                Text(
-                    text = "Últimas Reseñas",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = ComposeColor.White,
-                    modifier = Modifier.padding(bottom = 15.dp)
-                )
+        if (!isEditing) {
+            item {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(ComposeColor(0x1A1EB7D9), RoundedCornerShape(12.dp))
-                        .padding(15.dp)
-                ) {
-                    if (limitReviews.isEmpty()) {
-                        Text(
-                            text = "Aún no tienes reseñas",
-                            fontSize = 14.sp,
-                            color = ComposeColor.White,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(8.dp),
-                            textAlign = TextAlign.Center
-                        )
-                    } else {
-                        limitReviews.forEach { review ->
-                            Review(
-                                reviewerImageUrl = review.reviewerImageUrl,
-                                reviewerName = review.reviewerName,
-                                rating = review.rating,
-                                reviewText = review.comment,
-                                onClick = { navController.navigate("foreignProfile/${review.idEmisor}") }
-                            )
-                            Spacer(modifier = Modifier.height(10.dp))
-                        }
-                    }
-                }
-                TextButton(
-                    onClick = {
-                        navController.navigate("allReviews/${currentUser?.uid}")
-                    },
-                    modifier = Modifier
-                        .align(Alignment.Start)
-                        .padding(top = 10.dp)
+                        .padding(20.dp)
                 ) {
                     Text(
-                        text = "Ver todas las reseñas",
-                        color = ComposeColor(0xFF2EDFF2),
-                        fontSize = 16.sp
+                        text = "Últimas Reseñas",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = ComposeColor.White,
+                        modifier = Modifier.padding(bottom = 15.dp)
                     )
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(ComposeColor(0x1A1EB7D9), RoundedCornerShape(12.dp))
+                            .padding(15.dp)
+                    ) {
+                        if (limitReviews.isEmpty()) {
+                            Text(
+                                text = "Aún no tienes reseñas",
+                                fontSize = 14.sp,
+                                color = ComposeColor.White,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(8.dp),
+                                textAlign = TextAlign.Center
+                            )
+                        } else {
+                            limitReviews.forEach { review ->
+                                Review(
+                                    reviewerImageUrl = review.reviewerImageUrl,
+                                    reviewerName = review.reviewerName,
+                                    rating = review.rating,
+                                    reviewText = review.comment,
+                                    onClick = { navController.navigate("foreignProfile/${review.idEmisor}") }
+                                )
+                                Spacer(modifier = Modifier.height(10.dp))
+                            }
+                        }
+                    }
+                    TextButton(
+                        onClick = {
+                            navController.navigate("allReviews/${currentUser?.uid}")
+                        },
+                        modifier = Modifier
+                            .align(Alignment.Start)
+                            .padding(top = 10.dp)
+                    ) {
+                        Text(
+                            text = "Ver todas las reseñas",
+                            color = ComposeColor(0xFF2EDFF2),
+                            fontSize = 16.sp
+                        )
+                    }
                 }
             }
         }
