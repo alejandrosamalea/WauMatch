@@ -3,6 +3,7 @@ package com.example.waumatch.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -54,14 +55,15 @@ fun ChatItem(
             if (unreadCount > 0) {
                 Box(
                     modifier = Modifier
-                        .size(24.dp)
-                        .background(Color.Red, shape = MaterialTheme.shapes.small),
+                        .size(28.dp)
+                        .background(Color(0xFF1565C0), shape = CircleShape) // Azul oscuro
+                        .padding(4.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = unreadCount.toString(),
                         color = Color.White,
-                        style = MaterialTheme.typography.bodySmall
+                        style = MaterialTheme.typography.labelMedium
                     )
                 }
             }

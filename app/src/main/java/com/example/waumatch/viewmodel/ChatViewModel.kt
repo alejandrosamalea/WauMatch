@@ -105,6 +105,11 @@ class ChatViewModel : ViewModel() {
                         } else chat
                     }
                     _chats.value = updatedChats
+
+                    // 🔥 Si estás viendo este chat, marca mensajes como leídos
+                    if (_chatIdWithUser.value == chatId) {
+                        markMessagesAsRead(chatId)
+                    }
                 }
             }
     }
