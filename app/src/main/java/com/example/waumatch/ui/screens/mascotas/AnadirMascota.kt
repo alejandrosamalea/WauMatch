@@ -267,7 +267,7 @@ fun AnadirMascota(navController: NavController) {
             Button(
                 onClick = {
                     if (isSaving) return@Button
-                    if (nombre.isBlank() || especie.isBlank() || raza.isBlank() || edad.isBlank() || imageUris.isEmpty()) {
+                    if (nombre.isBlank() || especie.isBlank() || raza.isBlank() || edad.isBlank() || imageUris[0].isNullOrBlank()) {
                         Toast.makeText(context, "Por favor, completa todos los campos obligatorios", Toast.LENGTH_SHORT).show()
                         return@Button
                     }
