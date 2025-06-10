@@ -5,6 +5,7 @@ import android.content.Intent
 
 import android.net.Uri
 import android.util.Log
+import android.view.MotionEvent
 import org.osmdroid.views.overlay.Polygon
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.config.Configuration
@@ -428,16 +429,31 @@ fun AnuncioDetalladoScreen(
                                     appContext,
                                     androidx.preference.PreferenceManager.getDefaultSharedPreferences(appContext)
                                 )
-                                MapView(ctx).apply {
+
+                                object : MapView(ctx) {
+                                    override fun onTouchEvent(event: MotionEvent?): Boolean {
+                                        // Permitir solo zoom con dos dedos (pinch)
+                                        return if (event?.pointerCount == 2) {
+                                            super.onTouchEvent(event)
+                                        } else {
+                                            true // bloquear cualquier otra interacción (como mover)
+                                        }
+                                    }
+
+                                    override fun onInterceptTouchEvent(ev: MotionEvent?): Boolean {
+                                        // También interceptar eventos de un solo dedo para bloquear movimiento
+                                        return ev?.pointerCount != 2
+                                    }
+                                }.apply {
                                     setTileSource(TileSourceFactory.MAPNIK)
-                                    setMultiTouchControls(false) // Desactiva zoom para evitar desplazamientos fuera del layout
-                                    isClickable = false // Evita que el mapa reciba clicks si no quieres interacción
+                                    setMultiTouchControls(true) // permitir zoom con dos dedos
+                                    isClickable = false
                                     controller.setZoom(14.0)
                                     controller.setCenter(mapCenter)
 
                                     val circle = Polygon().apply {
-                                        points = Polygon.pointsAsCircle(mapCenter, 1000.0) // 1000 metros de radio
-                                        fillPaint.color = 0x30FF5722  // Color de relleno con opacidad
+                                        points = Polygon.pointsAsCircle(mapCenter, 1000.0)
+                                        fillPaint.color = 0x30FF5722
                                         fillPaint.style = android.graphics.Paint.Style.FILL
                                         strokeColor = android.graphics.Color.RED
                                         strokeWidth = 2f
@@ -447,18 +463,10 @@ fun AnuncioDetalladoScreen(
                                 }
                             },
                             modifier = Modifier
-                                .matchParentSize() // Asegura que el mapa se quede dentro del contenedor Box
+                                .matchParentSize()
                                 .clip(RoundedCornerShape(8.dp))
                         )
                     }
-                    Divider(
-                        color = Color.White.copy(alpha = 0.3f),
-                        thickness = 1.dp,
-                        modifier = Modifier.padding(bottom = 16.dp)
-                    )
-
-
-
                 }
             }
 
