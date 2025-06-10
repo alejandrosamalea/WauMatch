@@ -18,6 +18,7 @@ data class AnuncioEntity(
     val tipos: String,
     val mascotasIds: List<String>,
     val latitud: Double,
-    val longitud: Double
+    val longitud: Double,
+    val provincia: String
 )
 

@@ -2,6 +2,8 @@ package com.example.waumatch.ui.screens
 
 import android.app.Application
 import android.app.DatePickerDialog
+import android.location.Geocoder
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -34,6 +36,7 @@ import coil.compose.AsyncImage
 import com.example.waumatch.data.local.AnuncioEntity
 import com.example.waumatch.ui.components.Mascota
 import com.example.waumatch.ui.screens.Profiles.ProfileManagerFactory
+
 import com.example.waumatch.viewmodel.AnuncioViewModel
 import com.example.waumatch.viewmodel.AnuncioViewModelFactory
 import com.example.waumatch.viewmodel.ProfileManager
@@ -58,6 +61,7 @@ fun AddScreen(navController: NavController) {
     var location by remember { mutableStateOf("") }
     var latitud by remember { mutableStateOf<Double?>(null) }
     var longitud by remember { mutableStateOf<Double?>(null) }
+    var provinciaSeleccionada by remember { mutableStateOf("") }
     var showStartPicker by remember { mutableStateOf(false) }
     var showEndPicker by remember { mutableStateOf(false) }
     val MAX_TITULO = 30
@@ -66,6 +70,7 @@ fun AddScreen(navController: NavController) {
     val mascotas = remember { mutableStateListOf<Mascota>() }
     val mascotasSeleccionadas = remember { mutableStateListOf<String>() }
     var tipoAnuncio by remember { mutableStateOf("Dueño") }
+    val geocoder = Geocoder(context, Locale.getDefault())
 
     val db = FirebaseFirestore.getInstance()
     val auth = FirebaseAuth.getInstance()
@@ -118,7 +123,6 @@ fun AddScreen(navController: NavController) {
         datePicker.minDate = today.timeInMillis
     }
 
-
     val endDatePickerDialog = DatePickerDialog(
         context,
         { _, year, month, dayOfMonth ->
@@ -129,13 +133,33 @@ fun AddScreen(navController: NavController) {
         today.get(Calendar.MONTH),
         today.get(Calendar.DAY_OF_MONTH)
     )
+
     val locationLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == android.app.Activity.RESULT_OK) {
             result.data?.let { data ->
                 latitud = data.getDoubleExtra("latitud", 0.0)
                 longitud = data.getDoubleExtra("longitud", 0.0)
                 location = data.getStringExtra("location") ?: "Ubicación desconocida"
+                android.util.Log.d("AddScreen", "Nueva ubicación seleccionada - Latitud: $latitud, Longitud: $longitud, Ubicación: $location")
+                if (latitud != null && longitud != null) {
+                    try {
+                        val addresses = geocoder.getFromLocation(latitud!!, longitud!!, 1)
+                        provinciaSeleccionada = if (!addresses.isNullOrEmpty()) {
+                            addresses[0].subAdminArea ?: "Provincia desconocida"
+                        } else {
+                            "Provincia desconocida"
+                        }
+                        android.util.Log.d("AddScreen", "Provincia desde locationLauncher: $provinciaSeleccionada")
+                    } catch (e: Exception) {
+                        android.util.Log.e("AddScreen", "Error en Geocoder (locationLauncher): ${e.message}")
+                        provinciaSeleccionada = "Provincia desconocida"
+                    }
+                } else {
+                    android.util.Log.w("AddScreen", "Latitud o Longitud nulos en locationLauncher")
+                }
             }
+        } else {
+            android.util.Log.w("AddScreen", "locationLauncher cancelado o fallido, resultCode: ${result.resultCode}")
         }
     }
 
@@ -157,9 +181,30 @@ fun AddScreen(navController: NavController) {
                 location = userDocument.getString("location") ?: ""
                 latitud = userDocument.getDouble("latitud")
                 longitud = userDocument.getDouble("longitud")
+                android.util.Log.d("AddScreen", "Ubicación del usuario cargada - Latitud: $latitud, Longitud: $longitud, Ubicación: $location")
+                if (latitud != null && longitud != null) {
+                    try {
+                        val addresses = geocoder.getFromLocation(latitud!!, longitud!!, 1)
+                        provinciaSeleccionada = if (!addresses.isNullOrEmpty()) {
+                            addresses[0].subAdminArea ?: "Provincia desconocida"
+                        } else {
+                            "Provincia desconocida"
+                        }
+                        android.util.Log.d("AddScreen", "Provincia desde LaunchedEffect: $provinciaSeleccionada")
+                    } catch (e: Exception) {
+                        android.util.Log.e("AddScreen", "Error en Geocoder (LaunchedEffect): ${e.message}")
+                        provinciaSeleccionada = "Provincia desconocida"
+                    }
+                } else {
+                    android.util.Log.w("AddScreen", "Latitud o Longitud nulos en LaunchedEffect")
+                }
             } catch (e: Exception) {
+                android.util.Log.e("AddScreen", "Error al cargar datos del usuario: ${e.message}")
                 creador = "Usuario Anónimo"
+                provinciaSeleccionada = "Provincia desconocida"
             }
+        } else {
+            android.util.Log.w("AddScreen", "userId está vacío")
         }
     }
 
@@ -201,151 +246,151 @@ fun AddScreen(navController: NavController) {
                 )
             }
 
-        Text(
-            text = "Detalles del anuncio",
-            style = MaterialTheme.typography.headlineSmall.copy(
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            ),
-            modifier = Modifier.padding(bottom = 24.dp)
-        )
-        Text(
-            text = "Tipo de anuncio*",
-            style = MaterialTheme.typography.titleMedium.copy(color = Color.White),
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
+            Text(
+                text = "Detalles del anuncio",
+                style = MaterialTheme.typography.headlineSmall.copy(
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                ),
+                modifier = Modifier.padding(bottom = 24.dp)
+            )
+            Text(
+                text = "Tipo de anuncio*",
+                style = MaterialTheme.typography.titleMedium.copy(color = Color.White),
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 24.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            listOf("Dueño", "Paseador").forEach { tipo ->
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .padding(end = 16.dp)
-                        .clickable { tipoAnuncio = tipo }
-                ) {
-                    RadioButton(
-                        selected = tipoAnuncio == tipo,
-                        onClick = { tipoAnuncio = tipo },
-                        colors = RadioButtonDefaults.colors(selectedColor = Color.White)
-                    )
-                    Text(
-                        text = tipo,
-                        color = Color.White,
-                        modifier = Modifier.padding(start = 4.dp)
-                    )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 24.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                listOf("Dueño", "Paseador").forEach { tipo ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .padding(end = 16.dp)
+                            .clickable { tipoAnuncio = tipo }
+                    ) {
+                        RadioButton(
+                            selected = tipoAnuncio == tipo,
+                            onClick = { tipoAnuncio = tipo },
+                            colors = RadioButtonDefaults.colors(selectedColor = Color.White)
+                        )
+                        Text(
+                            text = tipo,
+                            color = Color.White,
+                            modifier = Modifier.padding(start = 4.dp)
+                        )
+                    }
                 }
             }
-        }
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 24.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            repeat(3) { index ->
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .aspectRatio(1f)
-                        .padding(horizontal = 4.dp)
-                        .background(Color.White, RoundedCornerShape(8.dp))
-                ) {
-                    Column(
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 24.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                repeat(3) { index ->
+                    Box(
                         modifier = Modifier
-                            .fillMaxSize()
-                            .clickable {
-                                pickImageLaunchers[index].launch(
-                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                                )
-                            },
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
+                            .weight(1f)
+                            .aspectRatio(1f)
+                            .padding(horizontal = 4.dp)
+                            .background(Color.White, RoundedCornerShape(8.dp))
                     ) {
-                        if (imageUris[index] != null) {
-                            AsyncImage(
-                                model = imageUris[index],
-                                contentDescription = "Imagen seleccionada",
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .clip(RoundedCornerShape(8.dp))
-                            )
-                        } else {
-                            Icon(
-                                Icons.Outlined.Image,
-                                contentDescription = "Añadir imagen",
-                                tint = Color(0xFF666666),
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
-                        if (index == 0) {
-                            Text(
-                                text = "Foto principal",
-                                color = Color(0xFF666666),
-                                fontSize = 12.sp,
-                                modifier = Modifier.padding(top = 4.dp)
-                            )
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clickable {
+                                    pickImageLaunchers[index].launch(
+                                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                    )
+                                },
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            if (imageUris[index] != null) {
+                                AsyncImage(
+                                    model = imageUris[index],
+                                    contentDescription = "Imagen seleccionada",
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .clip(RoundedCornerShape(8.dp))
+                                )
+                            } else {
+                                Icon(
+                                    Icons.Outlined.Image,
+                                    contentDescription = "Añadir imagen",
+                                    tint = Color(0xFF666666),
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                            if (index == 0) {
+                                Text(
+                                    text = "Foto principal",
+                                    color = Color(0xFF666666),
+                                    fontSize = 12.sp,
+                                    modifier = Modifier.padding(top = 4.dp)
+                                )
+                            }
                         }
                     }
                 }
             }
-        }
 
-        Text(
-            text = "Título*",
-            style = MaterialTheme.typography.titleMedium.copy(color = Color.White),
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-        OutlinedTextField(
-            value = titulo,
-            onValueChange = { if (it.length <= MAX_TITULO) titulo = it },
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color.White, RoundedCornerShape(8.dp)),
-            placeholder = { Text("Título del anuncio", color = Color(0xFF999999)) },
-            textStyle = LocalTextStyle.current.copy(color = Color.Black),
-            singleLine = true
-        )
-        Text(
-            text = "${titulo.length}/$MAX_TITULO",
-            color = Color.White.copy(alpha = 0.7f),
-            fontSize = 12.sp,
-            modifier = Modifier
-                .align(Alignment.End)
-                .padding(top = 4.dp)
-        )
+            Text(
+                text = "Título*",
+                style = MaterialTheme.typography.titleMedium.copy(color = Color.White),
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+            OutlinedTextField(
+                value = titulo,
+                onValueChange = { if (it.length <= MAX_TITULO) titulo = it },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color.White, RoundedCornerShape(8.dp)),
+                placeholder = { Text("Título del anuncio", color = Color(0xFF999999)) },
+                textStyle = LocalTextStyle.current.copy(color = Color.Black),
+                singleLine = true
+            )
+            Text(
+                text = "${titulo.length}/$MAX_TITULO",
+                color = Color.White.copy(alpha = 0.7f),
+                fontSize = 12.sp,
+                modifier = Modifier
+                    .align(Alignment.End)
+                    .padding(top = 4.dp)
+            )
 
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(
-            text = "Descripción*",
-            style = MaterialTheme.typography.titleMedium.copy(color = Color.White),
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-        OutlinedTextField(
-            value = descripcion,
-            onValueChange = { if (it.length <= MAX_DESCRIPCION) descripcion = it },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(120.dp)
-                .background(Color.White, RoundedCornerShape(8.dp)),
-            placeholder = { Text("Describe los detalles de tu anuncio", color = Color(0xFF999999)) },
-            textStyle = LocalTextStyle.current.copy(color = Color.Black),
-            maxLines = 4
-        )
-        Text(
-            text = "${descripcion.length}/$MAX_DESCRIPCION",
-            color = Color.White.copy(alpha = 0.7f),
-            fontSize = 12.sp,
-            modifier = Modifier
-                .align(Alignment.End)
-                .padding(top = 4.dp)
-        )
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = "Descripción*",
+                style = MaterialTheme.typography.titleMedium.copy(color = Color.White),
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+            OutlinedTextField(
+                value = descripcion,
+                onValueChange = { if (it.length <= MAX_DESCRIPCION) descripcion = it },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(120.dp)
+                    .background(Color.White, RoundedCornerShape(8.dp)),
+                placeholder = { Text("Describe los detalles de tu anuncio", color = Color(0xFF999999)) },
+                textStyle = LocalTextStyle.current.copy(color = Color.Black),
+                maxLines = 4
+            )
+            Text(
+                text = "${descripcion.length}/$MAX_DESCRIPCION",
+                color = Color.White.copy(alpha = 0.7f),
+                fontSize = 12.sp,
+                modifier = Modifier
+                    .align(Alignment.End)
+                    .padding(top = 4.dp)
+            )
 
             Spacer(modifier = Modifier.height(16.dp))
             Text(
@@ -396,47 +441,47 @@ fun AddScreen(navController: NavController) {
                 }
             }
 
-        Spacer(modifier = Modifier.height(24.dp))
-        if (tipoAnuncio == "Dueño") {
-            Text(
-                text = "Selecciona las mascotas para este anuncio*",
-                style = MaterialTheme.typography.titleMedium.copy(color = Color.White),
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-            if (mascotas.size > 0) {
-                mascotas.forEach { mascota ->
-                    val seleccionada = mascotasSeleccionadas.contains(mascota.id)
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                if (seleccionada) mascotasSeleccionadas.remove(mascota.id)
-                                else mascotasSeleccionadas.add(mascota.id)
-                            }
-                            .padding(vertical = 4.dp)
-                            .background(
-                                if (seleccionada) Color(0xFFB3E5FC) else Color.White,
-                                shape = RoundedCornerShape(8.dp)
-                            )
-                            .padding(12.dp)
-                    ) {
-                        Text(
-                            text = mascota.nombre,
-                            color = Color.Black,
-                            fontSize = 12.sp
-                        )
-                    }
-                }
-            } else {
-                Text(
-                    text = "Actualmente no tienes mascotas registradas, hazlo en tu perfil",
-                    color = Color.Black,
-                    fontSize = 16.sp
-                )
-            }
             Spacer(modifier = Modifier.height(24.dp))
-        }
+            if (tipoAnuncio == "Dueño") {
+                Text(
+                    text = "Selecciona las mascotas para este anuncio*",
+                    style = MaterialTheme.typography.titleMedium.copy(color = Color.White),
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                if (mascotas.size > 0) {
+                    mascotas.forEach { mascota ->
+                        val seleccionada = mascotasSeleccionadas.contains(mascota.id)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    if (seleccionada) mascotasSeleccionadas.remove(mascota.id)
+                                    else mascotasSeleccionadas.add(mascota.id)
+                                }
+                                .padding(vertical = 4.dp)
+                                .background(
+                                    if (seleccionada) Color(0xFFB3E5FC) else Color.White,
+                                    shape = RoundedCornerShape(8.dp)
+                                )
+                                .padding(12.dp)
+                        ) {
+                            Text(
+                                text = mascota.nombre,
+                                color = Color.Black,
+                                fontSize = 12.sp
+                            )
+                        }
+                    }
+                } else {
+                    Text(
+                        text = "Actualmente no tienes mascotas registradas, hazlo en tu perfil",
+                        color = Color.Black,
+                        fontSize = 16.sp
+                    )
+                }
+                Spacer(modifier = Modifier.height(24.dp))
+            }
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -504,7 +549,7 @@ fun AddScreen(navController: NavController) {
                 }
             }
 
-        Spacer(modifier = Modifier.height(35.dp))
+            Spacer(modifier = Modifier.height(35.dp))
             Button(
                 onClick = {
                     if (titulo.isBlank() || descripcion.isBlank() || fechaInicio.isBlank() || fechaFin.isBlank() || location.isBlank()) {
@@ -537,6 +582,7 @@ fun AddScreen(navController: NavController) {
                         Toast.makeText(context, "La fecha de inicio debe ser anterior a la fecha de fin", Toast.LENGTH_SHORT).show()
                         return@Button
                     }
+                    Log.d("AddScreen", "Preparando anuncio - Provincia: $provinciaSeleccionada, Latitud: $latitud, Longitud: $longitud")
                     val nuevoAnuncio = AnuncioEntity(
                         id = UUID.randomUUID().toString(),
                         titulo = titulo,
@@ -550,9 +596,10 @@ fun AddScreen(navController: NavController) {
                         tipos = tipoAnuncio,
                         mascotasIds = mascotasSeleccionadas.toList(),
                         latitud = latitud!!,
-                        longitud = longitud!!
+                        longitud = longitud!!,
+                        provincia = provinciaSeleccionada
                     )
-
+                    Log.d("AddScreen", "Anuncio creado - Provincia en AnuncioEntity: ${nuevoAnuncio.provincia}")
                     viewModel.agregarAnuncio(nuevoAnuncio, context2)
                     Toast.makeText(context, "Anuncio creado correctamente", Toast.LENGTH_SHORT).show()
                     navController.navigate("home") { popUpTo("home") { inclusive = true } }
@@ -570,7 +617,7 @@ fun AddScreen(navController: NavController) {
                     fontWeight = FontWeight.Bold
                 )
             }
-    }
+        }
     }
 }
 

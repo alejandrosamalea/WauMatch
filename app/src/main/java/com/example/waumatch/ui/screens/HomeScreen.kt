@@ -80,7 +80,7 @@ fun HomeScreen(navController: NavController) {
         mutableStateOf(preferences.getString("selectedTipoMascota", "Todos") ?: "Todos")
     }
     var selectedDistancia by remember {
-        mutableStateOf(preferences.getFloat("selectedDistancia", 300f))
+        mutableStateOf(preferences.getFloat("selectedDistancia", 100f))
     }
     var selectedTipoAnuncio by remember {
         mutableStateOf(preferences.getString("selectedTipoAnuncio", "Todos") ?: "Todos")
@@ -117,7 +117,7 @@ fun HomeScreen(navController: NavController) {
             if (doc.exists()) {
                 val lat = doc.getDouble("latitud")
                 val lng = doc.getDouble("longitud")
-                val rad = doc.getDouble("radio_km") ?: 300.0
+                val rad = doc.getDouble("radio_km") ?: 100.0
                 if (lat != null && lng != null) {
                     value = listOf(lat, lng, rad)
                 }
@@ -159,7 +159,7 @@ fun HomeScreen(navController: NavController) {
                     anuncio.titulo.contains(searchQuery, ignoreCase = true) ||
                     anuncio.descripcion.contains(searchQuery, ignoreCase = true)
             val coincideComunidad = !filtrarPorComunidad ||
-                    viewModel.perteneceALaComunidadDelUsuario(anuncio.idCreador)
+                    viewModel.perteneceALaComunidadDelUsuario(anuncio.id)
             val dentroDelRadio = ignorarDistancia ||
                     (userLocation != null && viewModel.calculateDistance(
                         lat1 = userLocation!![0],
@@ -248,7 +248,7 @@ fun HomeScreen(navController: NavController) {
                 )
             }
 
-            if (selectedTipoMascota != "Todos" || selectedDistancia != 300f ||
+            if (selectedTipoMascota != "Todos" || selectedDistancia != 100f ||
                 selectedTipoAnuncio != "Todos" || filtrarPorComunidad || ignorarDistancia
             ) {
                 FiltersIndicator(
@@ -259,7 +259,7 @@ fun HomeScreen(navController: NavController) {
                     ignorarDistancia = ignorarDistancia,
                     onClearFilters = {
                         selectedTipoMascota = "Todos"
-                        selectedDistancia = 300f
+                        selectedDistancia = 100f
                         selectedTipoAnuncio = "Todos"
                         filtrarPorComunidad = false
                         ignorarDistancia = false
@@ -382,7 +382,7 @@ fun FiltersPanel(
             Slider(
                 value = selectedDistancia,
                 onValueChange = onDistanciaChange,
-                valueRange = 1f..300f,
+                valueRange = 1f..100f,
                 steps = 19,
                 colors = SliderDefaults.colors(
                     thumbColor = AquaLight,

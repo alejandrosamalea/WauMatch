@@ -60,7 +60,8 @@ class AnuncioViewModel(application: Application) : AndroidViewModel(application)
                     tipos = entity.tipos,
                     mascotasIds = entity.mascotasIds,
                     latitud = entity.latitud,
-                    longitud = entity.longitud
+                    longitud = entity.longitud,
+                    provincia = entity.provincia
                 )
             }
         }
@@ -86,17 +87,17 @@ class AnuncioViewModel(application: Application) : AndroidViewModel(application)
             }
     }
 
-    suspend fun perteneceALaComunidadDelUsuario(idCreador: String): Boolean {
+    suspend fun perteneceALaComunidadDelUsuario(idAnuncio: String): Boolean {
         val comunidadUsuario = comunidadUsuarioActual ?: return false
 
         return try {
             val snapshot = FirebaseFirestore.getInstance()
-                .collection("usuarios")
-                .document(idCreador)
+                .collection("anuncios")
+                .document(idAnuncio)
                 .get()
                 .await()
-            val comunidadCreador = snapshot.getString("provincia")
-            comunidadCreador == comunidadUsuario
+            val provinciaAnuncio = snapshot.getString("provincia")
+            provinciaAnuncio == comunidadUsuario
         } catch (e: Exception) {
             false
         }
@@ -142,7 +143,8 @@ class AnuncioViewModel(application: Application) : AndroidViewModel(application)
                     tipos = anuncio.tipos,
                     mascotasIds = anuncio.mascotasIds,
                     latitud = anuncio.latitud,
-                    longitud = anuncio.longitud
+                    longitud = anuncio.longitud,
+                    provincia = anuncio.provincia
                 )
                 repository.actualizarAnuncio(actualizado)
 
@@ -192,7 +194,8 @@ class AnuncioViewModel(application: Application) : AndroidViewModel(application)
                             tipos = doc.getString("tipos") ?: "",
                             mascotasIds = doc.get("mascotasIds") as? List<String> ?: listOf(),
                             latitud = doc.getDouble("latitud") ?: 0.0,
-                            longitud = doc.getDouble("longitud") ?: 0.0
+                            longitud = doc.getDouble("longitud") ?: 0.0,
+                            provincia = doc.getString("provincia") ?: "Provincia desconocida"
                         )
                     } catch (e: Exception) {
                         null
@@ -258,7 +261,8 @@ class AnuncioViewModel(application: Application) : AndroidViewModel(application)
                                     "tipos" to anuncio.tipos,
                                     "mascotasIds" to anuncio.mascotasIds,
                                     "latitud" to anuncio.latitud,
-                                    "longitud" to anuncio.longitud
+                                    "longitud" to anuncio.longitud,
+                                    "provincia" to anuncio.provincia
                                 )
 
                                 db.collection("anuncios").add(anuncioMap)

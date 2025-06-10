@@ -6,7 +6,7 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 
-@Database(entities = [AnuncioEntity::class], version = 10)
+@Database(entities = [AnuncioEntity::class], version = 11)
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun anuncioDao(): AnuncioDao
