@@ -266,7 +266,7 @@ fun AddScreen(navController: NavController) {
                     .padding(bottom = 24.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                listOf("Dueño", "Paseador").forEach { tipo ->
+                listOf("Dueño", "Cuidador").forEach { tipo ->
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
