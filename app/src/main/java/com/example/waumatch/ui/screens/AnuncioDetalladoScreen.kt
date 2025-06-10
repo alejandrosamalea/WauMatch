@@ -231,6 +231,17 @@ fun AnuncioDetalladoScreen(
                         modifier = Modifier.padding(bottom = 16.dp)
                     )
 
+                    Text(
+                        text = " ${anuncio.tipos}",
+                        style = MaterialTheme.typography.bodyMedium.copy(color = Color.White),
+                        modifier = Modifier.padding(bottom = 4.dp)
+                    )
+
+                    Divider(
+                        color = Color.White.copy(alpha = 0.3f),
+                        thickness = 1.dp,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
