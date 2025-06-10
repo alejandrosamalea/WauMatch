@@ -26,7 +26,6 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color as ComposeColor
@@ -60,6 +59,7 @@ import kotlinx.coroutines.tasks.await
 import android.Manifest
 import android.app.Application
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.text.input.KeyboardType
 import com.example.waumatch.viewmodel.AnuncioViewModel
 
@@ -80,7 +80,6 @@ fun ProfileScreen(
     var fechaRegistro by remember { mutableStateOf("01/2025") }
     var telefono by remember { mutableStateOf("No disponible") }
     var provincia by remember { mutableStateOf("No especificada") }
-    var subtitle by remember { mutableStateOf("") }
     var about by remember { mutableStateOf("Añade una descripción") }
     val application = context.applicationContext as Application
     val anuncios = anuncioViewModel.anuncios.collectAsState().value
@@ -99,15 +98,12 @@ fun ProfileScreen(
         )
     }
     var localProfileImage by remember { mutableStateOf<String?>(null) }
-    var tags by remember { mutableStateOf(listOf("♥️ Amante de los animales")) }
-    var newTag by remember { mutableStateOf("") }
+    var limitReviews by remember { mutableStateOf(listOf<ReviewData>()) }
     var reviews by remember { mutableStateOf(listOf<ReviewData>()) }
     val isEditing by viewModel.getIsEditing().observeAsState(false)
 
     val MAX_NAME_LENGTH = 15
-    val MAX_SUBTITLE_LENGTH = 10
     val MAX_ABOUT_LENGTH = 300
-    val MAX_TAGS = 4
 
     val timeFormatter = SimpleDateFormat("HH:mm", Locale.getDefault())
 
@@ -152,13 +148,10 @@ fun ProfileScreen(
                     if (documentSnapshot.exists()) {
                         nombre = documentSnapshot.getString("nombre") ?: "Sin nombre"
                         fechaRegistro = documentSnapshot.getString("fechaRegistro") ?: "01/2025"
-                        subtitle = documentSnapshot.getString("subtitle") ?: ""
                         about = documentSnapshot.getString("about") ?: "Añade una descripción"
-                        tags = documentSnapshot.get("tags") as? List<String> ?: tags
                         locationText = documentSnapshot.getString("location") ?: "Ubicación no disponible"
                         telefono = documentSnapshot.getString("telefono") ?: "No disponible"
                         provincia = documentSnapshot.getString("provincia") ?: "No especificada"
-
 
                         val firebaseAvailability = documentSnapshot.get("availability")
                         if (firebaseAvailability != null) {
@@ -200,14 +193,17 @@ fun ProfileScreen(
                 }
         }
 
-
-
         // Cargar reseñas
         LaunchedEffect(currentUser.uid) {
             loadTopReviews(currentUser.uid) { fetchedReviews ->
                 reviews = fetchedReviews
             }
+
+            loadTopLimitReviews(currentUser.uid) { fetchedReviews ->
+                limitReviews = fetchedReviews
+            }
         }
+
 
         // Verificar permisos y actualizar ubicación si es necesario
         LaunchedEffect(Unit) {
@@ -272,13 +268,12 @@ fun ProfileScreen(
                     onClick = {
                         if (isEditing) {
                             if (currentUser != null) {
-                                viewModel.saveChanges(nombre, subtitle, about, availability, tags)
+                                viewModel.saveChanges(nombre, "", about, availability, emptyList())
                                 db.collection("usuarios").document(currentUser.uid)
                                     .update(mapOf(
                                         "location" to locationText,
-                                        "telefono" to telefono // Añadir el teléfono al mapa de actualización
-                                    )
-                                    )
+                                        "telefono" to telefono
+                                    ))
                                     .addOnFailureListener { e ->
                                         Log.e("ProfileScreen", "Error al guardar ubicación: ${e.message}")
                                     }
@@ -358,39 +353,6 @@ fun ProfileScreen(
                         )
                     }
                     Spacer(modifier = Modifier.height(5.dp))
-                    if (isEditing) {
-                        TextField(
-                            value = subtitle,
-                            onValueChange = { if (it.length <= MAX_SUBTITLE_LENGTH) subtitle = it },
-                            modifier = Modifier
-                                .width(200.dp)
-                                .border(1.dp, ComposeColor(0xFF2EDFF2), RoundedCornerShape(8.dp)),
-                            textStyle = LocalTextStyle.current.copy(
-                                color = ComposeColor.White,
-                                fontSize = 14.sp,
-                                textAlign = TextAlign.Center
-                            ),
-                            placeholder = { Text("Tu descripción corta", color = ComposeColor.White) },
-                            colors = TextFieldDefaults.colors(
-                                focusedContainerColor = ComposeColor.Transparent,
-                                unfocusedContainerColor = ComposeColor.Transparent,
-                                focusedIndicatorColor = ComposeColor.Transparent,
-                                unfocusedIndicatorColor = ComposeColor.Transparent
-                            )
-                        )
-                        Text(
-                            text = "${subtitle.length}/$MAX_SUBTITLE_LENGTH",
-                            fontSize = 12.sp,
-                            color = ComposeColor.White,
-                            modifier = Modifier.padding(top = 4.dp)
-                        )
-                    } else {
-                        Text(
-                            text = subtitle,
-                            fontSize = 16.sp,
-                            color = ComposeColor(0xFF1EB7D9)
-                        )
-                    }
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -510,67 +472,6 @@ fun ProfileScreen(
                             modifier = Modifier.padding(bottom = 15.dp)
                         )
                     }
-                    LazyRow(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        items(tags) { tag ->
-                            Box(
-                                modifier = Modifier
-                                    .background(ComposeColor(0x262EDFF2), RoundedCornerShape(20.dp))
-                                    .padding(horizontal = 12.dp, vertical = 6.dp)
-                                    .clickable(enabled = isEditing) { tags = tags - tag }
-                            ) {
-                                Text(
-                                    text = tag,
-                                    fontSize = 14.sp,
-                                    color = ComposeColor(0xFF2EDFF2)
-                                )
-                            }
-                        }
-                    }
-                    if (isEditing && tags.size < MAX_TAGS) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            TextField(
-                                value = newTag,
-                                onValueChange = { newTag = it },
-                                placeholder = { Text("Añadir nueva etiqueta", color = ComposeColor.White) },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .border(1.dp, ComposeColor(0xFF2EDFF2), RoundedCornerShape(8.dp)),
-                                textStyle = LocalTextStyle.current.copy(
-                                    color = ComposeColor.White,
-                                    fontSize = 14.sp
-                                ),
-                                colors = TextFieldDefaults.colors(
-                                    focusedContainerColor = ComposeColor.Transparent,
-                                    unfocusedContainerColor = ComposeColor.Transparent,
-                                    focusedIndicatorColor = ComposeColor.Transparent,
-                                    unfocusedIndicatorColor = ComposeColor.Transparent
-                                )
-                            )
-                            IconButton(
-                                onClick = {
-                                    if (newTag.trim().isNotEmpty()) {
-                                        tags = tags + newTag.trim()
-                                        newTag = ""
-                                    }
-                                },
-                                modifier = Modifier.padding(start = 8.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Add,
-                                    contentDescription = "Add tag",
-                                    tint = ComposeColor(0xFF2EDFF2)
-                                )
-                            }
-                        }
-                    }
                 }
             }
         }
@@ -594,16 +495,15 @@ fun ProfileScreen(
                         .padding(15.dp)
                 ) {
                     if (isEditing) {
-                        val MAX_PHONE_LENGTH = 9 // Máximo y mínimo 9 dígitos
+                        val MAX_PHONE_LENGTH = 9
                         var isPhoneValid by remember { mutableStateOf(telefono.length == MAX_PHONE_LENGTH && telefono.matches(Regex("^[0-9]{9}$"))) }
 
                         TextField(
                             value = telefono,
-                            onValueChange = { newValue ->
-                                // Solo permitir números y máximo 9 dígitos
-                                if (newValue.length <= MAX_PHONE_LENGTH && newValue.matches(Regex("^[0-9]*$"))) {
-                                    telefono = newValue
-                                    isPhoneValid = newValue.length == MAX_PHONE_LENGTH
+                            onValueChange = {
+                                if (it.length <= MAX_PHONE_LENGTH && it.matches(Regex("^[0-9]*$"))) {
+                                    telefono = it
+                                    isPhoneValid = it.length == MAX_PHONE_LENGTH
                                 }
                             },
                             modifier = Modifier
@@ -624,8 +524,8 @@ fun ProfileScreen(
                                 focusedIndicatorColor = ComposeColor.Transparent,
                                 unfocusedIndicatorColor = ComposeColor.Transparent
                             ),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone), // Teclado numérico
-                            isError = !isPhoneValid && telefono.isNotEmpty() // Mostrar error si no es válido
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                            isError = !isPhoneValid && telefono.isNotEmpty()
                         )
                         Row(
                             modifier = Modifier
@@ -668,9 +568,6 @@ fun ProfileScreen(
                 }
             }
         }
-        if (!isEditing) {
-
-
         item {
             val mascotas = remember { mutableStateListOf<Mascota>() }
             val userId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
@@ -803,45 +700,45 @@ fun ProfileScreen(
                 }
             }
         }
-            item {
+        item {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp)
+            ) {
+                Text(
+                    text = "Provincia",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = ComposeColor.White,
+                    modifier = Modifier.padding(bottom = 15.dp)
+                )
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(20.dp)
+                        .background(ComposeColor(0x1A1EB7D9), RoundedCornerShape(12.dp))
+                        .padding(15.dp)
                 ) {
-                    Text(
-                        text = "Provincia",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = ComposeColor.White,
-                        modifier = Modifier.padding(bottom = 15.dp)
-                    )
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(ComposeColor(0x1A1EB7D9), RoundedCornerShape(12.dp))
-                            .padding(15.dp)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.LocationOn,
-                                contentDescription = "Provincia",
-                                tint = ComposeColor(0xFF2EDFF2),
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = provincia,
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = if (provincia == "No especificada") ComposeColor.Gray else ComposeColor.White
-                            )
-                        }
+                        Icon(
+                            imageVector = Icons.Default.LocationOn,
+                            contentDescription = "Provincia",
+                            tint = ComposeColor(0xFF2EDFF2),
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = provincia,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = if (provincia == "No especificada") ComposeColor.Gray else ComposeColor.White
+                        )
                     }
                 }
             }
+        }
         item {
             Column(
                 modifier = Modifier
@@ -910,7 +807,6 @@ fun ProfileScreen(
                             }
                         }
                     }
-                    // Añadir texto "Ver mapa" debajo
                     TextButton(
                         onClick = { navController.navigate("test") },
                         modifier = Modifier
@@ -926,8 +822,6 @@ fun ProfileScreen(
                 }
             }
         }
-        }
-
         item {
             Column(
                 modifier = Modifier
@@ -963,63 +857,61 @@ fun ProfileScreen(
                 }
             }
         }
-        if (!isEditing) {
-            item {
+        item {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp)
+            ) {
+                Text(
+                    text = "Últimas Reseñas",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = ComposeColor.White,
+                    modifier = Modifier.padding(bottom = 15.dp)
+                )
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(20.dp)
+                        .background(ComposeColor(0x1A1EB7D9), RoundedCornerShape(12.dp))
+                        .padding(15.dp)
                 ) {
-                    Text(
-                        text = "Últimas Reseñas",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = ComposeColor.White,
-                        modifier = Modifier.padding(bottom = 15.dp)
-                    )
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(ComposeColor(0x1A1EB7D9), RoundedCornerShape(12.dp))
-                            .padding(15.dp)
-                    ) {
-                        if (reviews.isEmpty()) {
-                            Text(
-                                text = "Aún no tienes reseñas",
-                                fontSize = 14.sp,
-                                color = ComposeColor.White,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(8.dp),
-                                textAlign = TextAlign.Center
+                    if (limitReviews.isEmpty()) {
+                        Text(
+                            text = "Aún no tienes reseñas",
+                            fontSize = 14.sp,
+                            color = ComposeColor.White,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(8.dp),
+                            textAlign = TextAlign.Center
+                        )
+                    } else {
+                        limitReviews.forEach { review ->
+                            Review(
+                                reviewerImageUrl = review.reviewerImageUrl,
+                                reviewerName = review.reviewerName,
+                                rating = review.rating,
+                                reviewText = review.comment,
+                                onClick = { navController.navigate("foreignProfile/${review.idEmisor}") }
                             )
-                        } else {
-                            reviews.forEach { review ->
-                                Review(
-                                    reviewerImageUrl = review.reviewerImageUrl,
-                                    reviewerName = review.reviewerName,
-                                    rating = review.rating,
-                                    reviewText = review.comment,
-                                    onClick = { navController.navigate("foreignProfile/${review.idEmisor}") }
-                                )
-                                Spacer(modifier = Modifier.height(10.dp))
-                            }
+                            Spacer(modifier = Modifier.height(10.dp))
                         }
                     }
-                    TextButton(
-                        onClick = {
-                            navController.navigate("allReviews/${currentUser?.uid}")
-                        },
-                        modifier = Modifier
-                            .align(Alignment.Start)
-                            .padding(top = 10.dp)
-                    ) {
-                        Text(
-                            text = "Ver todas las reseñas",
-                            color = ComposeColor(0xFF2EDFF2),
-                            fontSize = 16.sp
-                        )
-                    }
+                }
+                TextButton(
+                    onClick = {
+                        navController.navigate("allReviews/${currentUser?.uid}")
+                    },
+                    modifier = Modifier
+                        .align(Alignment.Start)
+                        .padding(top = 10.dp)
+                ) {
+                    Text(
+                        text = "Ver todas las reseñas",
+                        color = ComposeColor(0xFF2EDFF2),
+                        fontSize = 16.sp
+                    )
                 }
             }
         }

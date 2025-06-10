@@ -52,7 +52,6 @@ fun ForeignProfileScreen(userId: String, onBackClick: () -> Unit, navController:
     val context = LocalContext.current
     var nombre by remember { mutableStateOf("Sin nombre") }
     var fechaRegistro by remember { mutableStateOf("01/2025") }
-    var subtitle by remember { mutableStateOf("") }
     var telefono by remember { mutableStateOf("No disponible") }
     var provincia by remember { mutableStateOf("No disponible") }
     var about by remember { mutableStateOf("Añade una descripción") }
@@ -70,9 +69,9 @@ fun ForeignProfileScreen(userId: String, onBackClick: () -> Unit, navController:
         )
     }
     var profileImage by remember { mutableStateOf("https://via.placeholder.com/150") }
-    var tags by remember { mutableStateOf(listOf("♥️ Amante de los animales")) }
     var rating by remember { mutableStateOf(0) }
     var reviewText by remember { mutableStateOf("") }
+    var limitReviews by remember { mutableStateOf(listOf<ReviewData>()) }
     var reviews by remember { mutableStateOf(listOf<ReviewData>()) }
     var userReview by remember { mutableStateOf<ReviewData?>(null) }
     var isEditingReview by remember { mutableStateOf(false) }
@@ -109,12 +108,10 @@ fun ForeignProfileScreen(userId: String, onBackClick: () -> Unit, navController:
                 if (documentSnapshot.exists()) {
                     nombre = documentSnapshot.getString("nombre") ?: "Sin nombre"
                     fechaRegistro = documentSnapshot.getString("fechaRegistro") ?: "01/2025"
-                    subtitle = documentSnapshot.getString("subtitle") ?: ""
                     about = documentSnapshot.getString("about") ?: "Añade una descripción"
-                    tags = documentSnapshot.get("tags") as? List<String> ?: tags
                     profileImage = documentSnapshot.getString("profileImage") ?: "https://via.placeholder.com/150"
                     telefono = documentSnapshot.getString("telefono") ?: "No disponible"
-                    provincia = documentSnapshot.getString("provincia") ?: "No disponible" // Añade esta línea
+                    provincia = documentSnapshot.getString("provincia") ?: "No disponible"
 
                     val firebaseAvailability = documentSnapshot.get("availability")
                     if (firebaseAvailability != null) {
@@ -160,8 +157,10 @@ fun ForeignProfileScreen(userId: String, onBackClick: () -> Unit, navController:
         loadTopReviews(userId, { fetchedReviews ->
             reviews = fetchedReviews
         })
+        loadTopLimitReviews(userId, { fetchedReviews ->
+            limitReviews = fetchedReviews
+        })
     }
-
 
     LaunchedEffect(userId, authUser?.uid) {
         if (authUser != null) {
@@ -228,15 +227,14 @@ fun ForeignProfileScreen(userId: String, onBackClick: () -> Unit, navController:
                             idEmisor = emisorId,
                             fechaCreacion = SimpleDateFormat("MM/yyyy", Locale.getDefault()).format(Date()),
                             idReceptor = userId,
-                            reviewerName = nombre, // Usar el nombre real del usuario
-                            reviewerImageUrl = fotoPerfil // Usar la imagen real del usuario
+                            reviewerName = nombre,
+                            reviewerImageUrl = fotoPerfil
                         )
 
                         bd.collection("reseñas").add(newReview)
                             .addOnSuccessListener {
                                 Toast.makeText(context, "¡Reseña enviada con éxito!", Toast.LENGTH_SHORT).show()
                                 userReview = newReview
-                                // Recargar las reseñas desde Firestore para asegurar consistencia
                                 loadTopReviews(userId) { updatedReviews ->
                                     onReviewsUpdated(updatedReviews)
                                 }
@@ -394,11 +392,6 @@ fun ForeignProfileScreen(userId: String, onBackClick: () -> Unit, navController:
                         color = ComposeColor.White
                     )
                     Spacer(modifier = Modifier.height(5.dp))
-                    Text(
-                        text = subtitle,
-                        fontSize = 16.sp,
-                        color = ComposeColor(0xFF1EB7D9)
-                    )
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -486,24 +479,6 @@ fun ForeignProfileScreen(userId: String, onBackClick: () -> Unit, navController:
                         color = ComposeColor.White,
                         modifier = Modifier.padding(bottom = 15.dp)
                     )
-                    LazyRow(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        items(tags) { tag ->
-                            Box(
-                                modifier = Modifier
-                                    .background(ComposeColor(0x262EDFF2), RoundedCornerShape(20.dp))
-                                    .padding(horizontal = 12.dp, vertical = 6.dp)
-                            ) {
-                                Text(
-                                    text = tag,
-                                    fontSize = 14.sp,
-                                    color = ComposeColor(0xFF2EDFF2)
-                                )
-                            }
-                        }
-                    }
                 }
             }
         }
@@ -821,7 +796,7 @@ fun ForeignProfileScreen(userId: String, onBackClick: () -> Unit, navController:
                         .background(ComposeColor(0x1A1EB7D9), RoundedCornerShape(12.dp))
                         .padding(15.dp)
                 ) {
-                    if (reviews.isEmpty()) {
+                    if (limitReviews.isEmpty()) {
                         Text(
                             text = "Sin reseñas",
                             fontSize = 14.sp,
@@ -832,7 +807,7 @@ fun ForeignProfileScreen(userId: String, onBackClick: () -> Unit, navController:
                             textAlign = TextAlign.Center
                         )
                     } else {
-                        reviews.forEach { review ->
+                        limitReviews.forEach { review ->
                             Review(
                                 reviewerImageUrl = review.reviewerImageUrl,
                                 reviewerName = review.reviewerName,
@@ -844,7 +819,7 @@ fun ForeignProfileScreen(userId: String, onBackClick: () -> Unit, navController:
                         }
                     }
                 }
-                if (reviews.isNotEmpty()) {
+                if (limitReviews.isNotEmpty()) {
                     TextButton(
                         onClick = {
                             navController.navigate("allReviews/$userId")
@@ -884,15 +859,14 @@ fun ForeignProfileScreen(userId: String, onBackClick: () -> Unit, navController:
     }
 }
 
-
 data class ReviewData(
     val rating: Int = 0,
     val comment: String = "",
     val idEmisor: String = "",
     val fechaCreacion: String = "",
     val idReceptor: String = "",
-    val reviewerName: String = "Anónimo", // Nuevo campo
-    val reviewerImageUrl: String = "https://via.placeholder.com/150" // Nuevo campo
+    val reviewerName: String = "Anónimo",
+    val reviewerImageUrl: String = "https://via.placeholder.com/150"
 ) {
     constructor() : this(0, "", "", "", "", "Anónimo", "https://via.placeholder.com/150")
 }
@@ -907,6 +881,69 @@ fun loadTopReviews(userId: String, onResult: (List<ReviewData>) -> Unit) {
     val db = FirebaseFirestore.getInstance()
     db.collection("reseñas")
         .whereEqualTo("idReceptor", userId.trim())
+        .get()
+        .addOnSuccessListener { result ->
+            val fetchedReviews = mutableListOf<ReviewData>()
+            val userIds = result.mapNotNull { it.getString("idEmisor") }.distinct()
+
+            if (userIds.isEmpty()) {
+                Log.d("FirestoreResult", "No se encontraron reseñas")
+                onResult(emptyList())
+                return@addOnSuccessListener
+            }
+
+            db.collection("usuarios")
+                .whereIn(FieldPath.documentId(), userIds)
+                .get()
+                .addOnSuccessListener { userResult ->
+                    val userMap = userResult.documents.associate { doc ->
+                        doc.id to Pair(
+                            doc.getString("nombre") ?: "Anónimo",
+                            doc.getString("profileImage") ?: "https://via.placeholder.com/150"
+                        )
+                    }
+
+                    fetchedReviews.addAll(result.mapNotNull { doc ->
+                        try {
+                            val idEmisor = doc.getString("idEmisor") ?: return@mapNotNull null
+                            val (name, imageUrl) = userMap[idEmisor] ?: Pair("Anónimo", "https://via.placeholder.com/150")
+                            ReviewData(
+                                comment = doc.getString("comment") ?: "",
+                                rating = doc.getLong("rating")?.toInt() ?: 0,
+                                fechaCreacion = doc.getString("fechaCreacion") ?: "",
+                                idReceptor = doc.getString("idReceptor") ?: "",
+                                idEmisor = idEmisor,
+                                reviewerName = name,
+                                reviewerImageUrl = imageUrl
+                            )
+                        } catch (e: Exception) {
+                            Log.e("FirestoreParse", "Error al convertir documento: ${doc.id}", e)
+                            null
+                        }
+                    })
+
+                    Log.d("FirestoreResult", "Se obtuvieron ${fetchedReviews.size} reseñas")
+                    onResult(fetchedReviews)
+                }
+
+        }
+        .addOnFailureListener { exception ->
+            Log.e("FirestoreError", "Error al obtener reseñas", exception)
+            onResult(emptyList())
+        }
+}
+
+fun loadTopLimitReviews(userId: String, onResult: (List<ReviewData>) -> Unit) {
+    if (userId.isBlank()) {
+        Log.e("FirestoreError", "userId es null o vacío")
+        onResult(emptyList())
+        return
+    }
+
+    val db = FirebaseFirestore.getInstance()
+    db.collection("reseñas")
+        .whereEqualTo("idReceptor", userId.trim())
+        .limit(3)
         .get()
         .addOnSuccessListener { result ->
             val fetchedReviews = mutableListOf<ReviewData>()
