@@ -2,8 +2,12 @@ package com.example.waumatch.ui.screens
 
 import android.app.Application
 import android.content.Intent
+
 import android.net.Uri
 import android.util.Log
+import org.osmdroid.views.overlay.Polygon
+import org.osmdroid.util.GeoPoint
+import org.osmdroid.config.Configuration
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -39,6 +43,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
@@ -54,6 +59,10 @@ import com.example.waumatch.viewmodel.AnuncioViewModel
 import com.example.waumatch.viewmodel.AnuncioViewModelFactory
 import com.example.waumatch.viewmodel.ProfileManager
 import com.google.firebase.auth.FirebaseAuth
+
+import org.osmdroid.tileprovider.tilesource.TileSourceFactory
+import org.osmdroid.views.MapView
+import org.osmdroid.views.overlay.Marker
 
 
 @Composable
@@ -368,8 +377,6 @@ fun AnuncioDetalladoScreen(
                         thickness = 1.dp,
                         modifier = Modifier.padding(bottom = 16.dp)
                     )
-
-
                     Text(
                         text = "Disponibilidad:",
                         style = MaterialTheme.typography.bodyLarge.copy(
@@ -388,6 +395,70 @@ fun AnuncioDetalladoScreen(
                         style = MaterialTheme.typography.bodyMedium.copy(color = Color.White),
                         modifier = Modifier.padding(bottom = 32.dp)
                     )
+                    Divider(
+                        color = Color.White.copy(alpha = 0.3f),
+                        thickness = 1.dp,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+                    Text(
+                        text = "Ubicación:",
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        ),
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+
+                    val mapCenter = remember {
+                        org.osmdroid.util.GeoPoint(anuncio.latitud, anuncio.longitud)
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(250.dp)
+                            .padding(bottom = 32.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color.LightGray) // color de fondo por si el mapa tarda
+                    ) {
+                        AndroidView(
+                            factory = { ctx ->
+                                val appContext = ctx.applicationContext
+                                Configuration.getInstance().load(
+                                    appContext,
+                                    androidx.preference.PreferenceManager.getDefaultSharedPreferences(appContext)
+                                )
+                                MapView(ctx).apply {
+                                    setTileSource(TileSourceFactory.MAPNIK)
+                                    setMultiTouchControls(false) // Desactiva zoom para evitar desplazamientos fuera del layout
+                                    isClickable = false // Evita que el mapa reciba clicks si no quieres interacción
+                                    controller.setZoom(14.0)
+                                    controller.setCenter(mapCenter)
+
+                                    val circle = Polygon().apply {
+                                        points = Polygon.pointsAsCircle(mapCenter, 1000.0) // 1000 metros de radio
+                                        fillPaint.color = 0x30FF5722  // Color de relleno con opacidad
+                                        fillPaint.style = android.graphics.Paint.Style.FILL
+                                        strokeColor = android.graphics.Color.RED
+                                        strokeWidth = 2f
+                                        title = "Área de cobertura (1 km)"
+                                    }
+                                    overlays.add(circle)
+                                }
+                            },
+                            modifier = Modifier
+                                .matchParentSize() // Asegura que el mapa se quede dentro del contenedor Box
+                                .clip(RoundedCornerShape(8.dp))
+                        )
+                    }
+                    Divider(
+                        color = Color.White.copy(alpha = 0.3f),
+                        thickness = 1.dp,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+
+
+
                 }
             }
 

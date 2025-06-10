@@ -69,6 +69,7 @@ dependencies {
     implementation(libs.firebase.database.ktx)
     implementation(libs.firebase.crashlytics.buildtools)
     implementation(libs.play.services.location)
+    implementation(libs.play.services.maps)
     kapt("androidx.room:room-compiler:2.7.0")
     implementation(libs.androidx.room.ktx)
     testImplementation(libs.junit)
