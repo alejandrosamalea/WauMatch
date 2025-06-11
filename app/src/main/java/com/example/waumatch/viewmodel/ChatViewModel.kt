@@ -36,14 +36,15 @@ class ChatViewModel : ViewModel() {
         val onesignalApiKey = "os_v2_app_aohcjz7mu5bgvbum6ujqpg5wpqlexcqsdhaetqfr7knivg2apiqvd3noutm2smqy43ca72e2z3f5vb543ag4gru3mudccsdtjcrn2vy" // Reemplaza con tu REST API Key
 
         val json = """
-        {
-            "app_id": "$onesignalAppId",
-            "include_external_user_ids": ["$receiverId"],
-            "contents": {"en": "$senderName: $messageContent"},
-            "headings": {"en": "Nuevo mensaje en WauMatch"},
-            "data": {"chatId": "$chatId"}
-        }
-    """.trimIndent()
+    {
+        "app_id": "$onesignalAppId",
+        "include_external_user_ids": ["$receiverId"],
+        "contents": { "en": "Mensaje: $messageContent" },
+        "headings": { "en": "Nuevo mensaje en WauMatch" },
+        "data": { "chatId": "$chatId" }
+    }
+""".trimIndent()
+
 
         val body = RequestBody.create(
             "application/json; charset=utf-8".toMediaTypeOrNull(),
