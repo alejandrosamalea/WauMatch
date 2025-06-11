@@ -43,17 +43,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
-    private val ONESIGNAL_APP_ID = "038e24e7-eca7-426a-868c-f513079bb67c" // Reemplaza con tu App ID
+    private val ONESIGNAL_APP_ID = "038e24e7-eca7-426a-868c-f513079bb67c"
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Enable verbose logging for debugging (remove in production)
         OneSignal.Debug.logLevel = LogLevel.VERBOSE
-        // Initialize with your OneSignal App ID
         OneSignal.initWithContext(this, "038e24e7-eca7-426a-868c-f513079bb67c")
-        // Use this method to prompt for push notifications.
-        // We recommend removing this method after testing and instead use In-App Messages to prompt for notification permission.
         CoroutineScope(Dispatchers.IO).launch {
             OneSignal.Notifications.requestPermission(true)
         }
@@ -98,8 +94,11 @@ class MainActivity : ComponentActivity() {
                             selectedDestination != NavigationItem.allReviews.route &&
                             selectedDestination != NavigationItem.anadirMascota.route &&
                             selectedDestination != NavigationItem.AdminMascota.route &&
-                            selectedDestination != NavigationItem.Ubicacion.route
-                        ) {
+                            selectedDestination != NavigationItem.Ubicacion.route   &&
+                            selectedDestination != NavigationItem.ChatDetallado.route &&
+                            selectedDestination != NavigationItem.MisAnuncios.route
+                            )
+                        {
                             MainNavigationBar(navController)
                         }
                     }
@@ -115,7 +114,7 @@ class MainActivity : ComponentActivity() {
                             ChatScreen(navController, chatViewModel)
                         }
                         composable(
-                            route = "chatDetail/{userId}",
+                            NavigationItem.ChatDetallado.route,
                             arguments = listOf(navArgument("userId") { type = NavType.StringType })
                         ) { backStackEntry ->
                             val userId = backStackEntry.arguments?.getString("userId") ?: ""
