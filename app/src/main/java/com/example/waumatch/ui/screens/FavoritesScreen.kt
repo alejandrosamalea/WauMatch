@@ -99,7 +99,7 @@ fun FavoritesScreen(navController: NavController) {
                     items(anunciosFiltrados) { anuncio ->
                         AnuncioCard(
                             anuncio = anuncio,
-                            onClick = { /* Lógica de clic */ },
+                            onClick = { navController.navigate("anuncioDetallado/${anuncio.id}") },
                             onToggleFavorito = { viewModel.toggleFavorito(it) }
                         )
                     }
