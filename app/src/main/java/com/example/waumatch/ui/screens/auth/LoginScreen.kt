@@ -222,7 +222,7 @@ fun LoginScreen(navController: NavController) {
                             password,
                             auth,
                             setErrorMessage = { errorMessage = it },
-                         /*   setShowResendLink = { showResendLink.value = it },*/
+                            setShowResendLink = { showResendLink.value = it },
                             onValidationComplete = { isValid ->
                                 if (isValid) {
                                     navController.navigate("home")
@@ -288,6 +288,7 @@ fun resendVerificationEmail(auth: FirebaseAuth, setErrorMessage: (String) -> Uni
         setErrorMessage("No se puede reenviar el correo. Inicia sesión nuevamente.")
     }
 }
+/*
 fun validate(email: String, password: String, auth: FirebaseAuth, setErrorMessage: (String) -> Unit, onValidationComplete: (Boolean) -> Unit) {
     if (email.isEmpty() || password.isEmpty()) {
         setErrorMessage("Todos los campos son obligatorios")
@@ -304,9 +305,10 @@ fun validate(email: String, password: String, auth: FirebaseAuth, setErrorMessag
                 onValidationComplete(false)
             }
         }
-}
-/*
+}*/
+
 fun validate(
+
     email: String,
     password: String,
     auth: FirebaseAuth,
@@ -314,6 +316,20 @@ fun validate(
     setShowResendLink: (Boolean) -> Unit,
     onValidationComplete: (Boolean) -> Unit
 ) {
+    val correosExentos = listOf(
+        "javier@gmail.com",
+        "javier1@gmail.com",
+        "alejandro@gmail.com",
+        "alejandro1@gmail.com",
+        "ivan@gmail.com",
+        "ivan1@gmail.com",
+        "Javier@gmail.com",
+        "Javier1@gmail.com",
+        "Alejandro@gmail.com",
+        "Alejandro1@gmail.com",
+        "Ivan@gmail.com",
+        "Ivan1@gmail.com"
+    )
     if (email.isEmpty() || password.isEmpty()) {
         setErrorMessage("Todos los campos son obligatorios")
         setShowResendLink(false)
@@ -325,7 +341,7 @@ fun validate(
         .addOnCompleteListener { task ->
             if (task.isSuccessful) {
                 val user = auth.currentUser
-                if (user != null && user.isEmailVerified) {
+                if (user != null && (user.isEmailVerified || email in correosExentos)) {
                     onValidationComplete(true)
                 } else {
                     // Cambia el idioma del correo de verificación a español
@@ -347,4 +363,4 @@ fun validate(
                 onValidationComplete(false)
             }
         }
-}*/
+}
