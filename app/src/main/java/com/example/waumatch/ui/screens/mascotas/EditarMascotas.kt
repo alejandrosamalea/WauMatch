@@ -79,7 +79,7 @@ fun EditarMascota(
     var adicional by remember { mutableStateOf("") }
     val context = LocalContext.current
     val imageUris = remember { mutableStateListOf<String?>(null, null, null) }
-    val pickImageLaunchers = List(3) { index ->
+    val pickImageLaunchers = List(1) { index ->
         rememberLauncherForActivityResult(
             contract = ActivityResultContracts.PickVisualMedia()
         ) { uri ->
@@ -198,14 +198,14 @@ fun EditarMascota(
                     isMandatory = true
                 )
             }
-            ExpandableSection("Imágenes de la mascota") {
+            ExpandableSection("Imágenes de la mascota", showMandatory = true) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 24.dp),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    repeat(3) { index ->
+                    repeat(1) { index ->
                         Box(
                             modifier = Modifier
                                 .weight(1f)
@@ -311,7 +311,7 @@ fun EditarMascota(
             Button(
                 onClick = {
                     if (isSaving) return@Button
-                    if (nombre.isBlank() || especie.isBlank() || raza.isBlank() || edad.isBlank()) {
+                    if (nombre.isBlank() || especie.isBlank() || raza.isBlank() || edad.isBlank() || imageUris[0].isNullOrBlank()) {
                         Toast.makeText(context, "Por favor, completa todos los campos obligatorios", Toast.LENGTH_SHORT).show()
                         return@Button
                     }

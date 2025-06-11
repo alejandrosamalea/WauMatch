@@ -59,7 +59,9 @@ fun MisAnunciosScreen(navController: NavController) {
 
     val idUsuarioActual = viewModel.obtenerIdUsuarioActual() ?: ""
 
-    val misAnuncios = anuncios.filter { it.idCreador == idUsuarioActual }
+    val misAnuncios = anuncios
+        .filter { it.idCreador == idUsuarioActual }
+        .sortedBy { it.fechaFin }
 
     var anuncioBorrar by remember { mutableStateOf<String?>(null) }
 

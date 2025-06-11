@@ -50,8 +50,9 @@ fun ForeignAdsScreen(
 
     val anuncios by viewModel.anuncios.collectAsState()
 
-    // Filtrar los anuncios por idCreador == userId
-    val foreignAnuncios = anuncios.filter { it.idCreador == userId }
+    val foreignAnuncios = anuncios
+        .filter { it.idCreador == userId }
+        .sortedBy { it.fechaFin }
 
     Scaffold(
         topBar = {
