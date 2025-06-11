@@ -1,6 +1,8 @@
 package com.example.waumatch.ui.screens
 
 import android.app.Application
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -37,7 +39,10 @@ import com.example.waumatch.ui.theme.OceanBlue
 import com.example.waumatch.ui.theme.SkyBlue
 import com.example.waumatch.viewmodel.AnuncioViewModel
 import com.example.waumatch.viewmodel.AnuncioViewModelFactory
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
+@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ForeignAdsScreen(
@@ -49,10 +54,14 @@ fun ForeignAdsScreen(
     val viewModel: AnuncioViewModel = viewModel(factory = AnuncioViewModelFactory(application))
 
     val anuncios by viewModel.anuncios.collectAsState()
+    val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
 
     val foreignAnuncios = anuncios
         .filter { it.idCreador == userId }
-        .sortedBy { it.fechaFin }
+        .sortedBy { anuncio ->
+            // Convierte el string a LocalDate para ordenar cronológicamente
+            LocalDate.parse(anuncio.fechaFin, formatter)
+        }
 
     Scaffold(
         topBar = {

@@ -45,6 +45,8 @@ import com.example.waumatch.ui.theme.OceanBlue
 import com.example.waumatch.ui.theme.SkyBlue
 import com.example.waumatch.viewmodel.AnuncioViewModel
 import com.example.waumatch.viewmodel.AnuncioViewModelFactory
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -58,10 +60,13 @@ fun MisAnunciosScreen(navController: NavController) {
     val anuncios by viewModel.anuncios.collectAsState()
 
     val idUsuarioActual = viewModel.obtenerIdUsuarioActual() ?: ""
-
+    val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
     val misAnuncios = anuncios
         .filter { it.idCreador == idUsuarioActual }
-        .sortedBy { it.fechaFin }
+        .sortedBy { anuncio ->
+            // Convierte el string a LocalDate para ordenar cronológicamente
+            LocalDate.parse(anuncio.fechaFin, formatter)
+        }
 
     var anuncioBorrar by remember { mutableStateOf<String?>(null) }
 
