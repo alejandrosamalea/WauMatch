@@ -532,9 +532,25 @@ fun validate(email: String, password: String, confirmPassword: String, nombre: S
         setErrorMessage("Las contraseñas no coinciden")
         return false
     }
+    val (isValidPassword, passwordError) = verificarPassword(password)
+    if (!isValidPassword) {
+        setErrorMessage(passwordError)
+        return false
+    }
     return true
 }
+fun verificarPassword(password: String): Pair<Boolean, String> {
+    val minLength = 8
+    val hasUpperCase = password.any { it.isUpperCase() }
+    val hasNumber = password.any { it.isDigit() }
 
+    return when {
+        password.length < minLength -> Pair(false, "La contraseña debe tener al menos 8 caracteres")
+        !hasUpperCase -> Pair(false, "La contraseña debe contener al menos una letra mayúscula")
+        !hasNumber -> Pair(false, "La contraseña debe contener al menos un número")
+        else -> Pair(true, "")
+    }
+}
 fun generateProfileImageFromName(name: String): String {
     val firstLetter = name.trim().firstOrNull()?.uppercase() ?: "U"
     val backgroundColor = "022859"
