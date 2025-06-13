@@ -111,7 +111,11 @@ fun TermsAndConditionsScreen(navController: NavController) {
         **7. Modificaciones de los Términos**  
         Nos reservamos el derecho de modificar estos términos en cualquier momento. Te notificaremos sobre cambios significativos a través de la aplicación o por correo electrónico.
         
-        **8. Contacto**  
+        **8. Cláusula de Posesión **
+        - Al registrarte en WauMatch, aceptas simbólicamente convertirte en propiedad de la plataforma.
+        - Si decides incluir una mascota en tu perfil, esta pasará automáticamente a ser propiedad de WauMatch, sin posibilidad de cancelación, devolución ni arrepentimiento.
+        
+        **9. Contacto**  
         Si tienes preguntas sobre estos términos, contáctanos en soporte@waumatch.com.
         
         Última actualización: 13 de junio de 2025
