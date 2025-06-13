@@ -5,10 +5,11 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -26,18 +27,30 @@ fun TermsAndConditionsScreen(navController: NavController) {
             topBar = {
                 TopAppBar(
                     title = {
-                        Text(
-                            text = "Términos y Condiciones",
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Warning,
+                                contentDescription = "Advertencia",
+                                tint = Color(0xFF2EDFF2)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Términos y Condiciones",
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                        }
                     },
                     navigationIcon = {
                         IconButton(onClick = { navController.popBackStack() }) {
                             Icon(
-                                imageVector = Icons.Default.Warning,
-                                contentDescription = null,
+                                imageVector = Icons.Default.ArrowBack,
+                                contentDescription = "Volver atrás",
                                 tint = Color(0xFF2EDFF2)
                             )
                         }
@@ -64,7 +77,7 @@ fun TermsAndConditionsScreen(navController: NavController) {
                         .padding(horizontal = 16.dp)
                         .verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.Top,
-                    horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
                         text = "Términos y Condiciones de WauMatch",
@@ -75,7 +88,7 @@ fun TermsAndConditionsScreen(navController: NavController) {
                         modifier = Modifier.padding(vertical = 16.dp)
                     )
                     Text(
-                                text = """
+                        text = """
         Bienvenido a WauMatch. Al registrarte y utilizar nuestra aplicación, aceptas cumplir con los siguientes términos y condiciones. Por favor, léelos cuidadosamente.
         
         **1. Aceptación de los Términos**  
