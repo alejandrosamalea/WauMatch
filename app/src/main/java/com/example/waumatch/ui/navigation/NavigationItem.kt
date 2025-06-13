@@ -27,5 +27,5 @@ sealed class NavigationItem(
     object MisAnuncios : NavigationItem("misAnuncios", R.drawable.baseline_visibility_24, "Mis Anuncios")
     object ForeignAds : NavigationItem("foreignAds/{userId}", R.drawable.baseline_visibility_24, "Anuncios de Otros")
     object ChatDetallado : NavigationItem("chatDetail/{userId}", R.drawable.baseline_visibility_24, "Chat Detallado")
-
+    object TermsAndConditions : NavigationItem("termsAndConditions", R.drawable.profile, "Términos y Condiciones")
 }

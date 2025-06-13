@@ -1,6 +1,5 @@
 package com.example.waumatch
 
-import RecuperarScreen
 import android.content.pm.ActivityInfo
 import android.os.Build
 import android.os.Bundle
@@ -20,6 +19,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.waumatch.auth.LoginScreen
+import RecuperarScreen
 import com.example.waumatch.auth.RegisterScreen
 import com.example.waumatch.ui.navigation.MainNavigationBar
 import com.example.waumatch.ui.navigation.NavigationItem
@@ -33,9 +33,9 @@ import com.example.waumatch.ui.screens.mascotas.EditarMascota
 import com.example.waumatch.ui.screens.mascotas.MascotaDetailsScreen
 import com.example.waumatch.ui.theme.WauMatchTheme
 import com.example.waumatch.viewmodel.AnuncioViewModel
+import com.example.waumatch.viewmodel.ChatViewModel
 import com.example.waumatch.viewmodel.CloudinaryManager
 import com.google.firebase.auth.FirebaseAuth
-import com.example.waumatch.viewmodel.ChatViewModel
 import com.onesignal.OneSignal
 import com.onesignal.debug.LogLevel
 import kotlinx.coroutines.CoroutineScope
@@ -53,7 +53,6 @@ class MainActivity : ComponentActivity() {
         CoroutineScope(Dispatchers.IO).launch {
             OneSignal.Notifications.requestPermission(true)
         }
-
 
         requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         CloudinaryManager.init(this)
@@ -81,7 +80,7 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                RequestNotificationPermission();
+                RequestNotificationPermission()
 
                 Scaffold(
                     bottomBar = {
@@ -94,11 +93,11 @@ class MainActivity : ComponentActivity() {
                             selectedDestination != NavigationItem.allReviews.route &&
                             selectedDestination != NavigationItem.anadirMascota.route &&
                             selectedDestination != NavigationItem.AdminMascota.route &&
-                            selectedDestination != NavigationItem.Ubicacion.route   &&
+                            selectedDestination != NavigationItem.Ubicacion.route &&
                             selectedDestination != NavigationItem.ChatDetallado.route &&
-                            selectedDestination != NavigationItem.MisAnuncios.route
-                            )
-                        {
+                            selectedDestination != NavigationItem.MisAnuncios.route &&
+                            selectedDestination != NavigationItem.TermsAndConditions.route // Añadir nueva ruta
+                        ) {
                             MainNavigationBar(navController)
                         }
                     }
@@ -127,7 +126,9 @@ class MainActivity : ComponentActivity() {
                         }
                         composable(NavigationItem.Add.route) { AddScreen(navController) }
                         composable(NavigationItem.Favorites.route) { FavoritesScreen(navController) }
-                        composable(NavigationItem.Profile.route) { ProfileScreen(navController, anuncioViewModel = AnuncioViewModel(application)) }
+                        composable(NavigationItem.Profile.route) {
+                            ProfileScreen(navController, anuncioViewModel = AnuncioViewModel(application))
+                        }
                         composable(NavigationItem.Login.route) { LoginScreen(navController) }
                         composable(NavigationItem.Registrar.route) { RegisterScreen(navController) }
                         composable(NavigationItem.Recuperar.route) { RecuperarScreen(navController) }
@@ -227,6 +228,9 @@ class MainActivity : ComponentActivity() {
                                 userId = userId,
                                 navController = navController
                             )
+                        }
+                        composable(NavigationItem.TermsAndConditions.route) {
+                            TermsAndConditionsScreen(navController = navController)
                         }
                     }
                 }

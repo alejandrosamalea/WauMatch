@@ -29,17 +29,16 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import androidx.test.services.events.TimeStamp
 import coil.compose.rememberAsyncImagePainter
 import com.example.waumatch.R
 import com.example.waumatch.ui.navigation.NavigationItem
 import com.example.waumatch.ui.theme.WauMatchTheme
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.type.DateTime
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -50,12 +49,12 @@ fun RegisterScreen(navController: NavController) {
     var email by remember { mutableStateOf("") }
     var nombre by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-
     var telefono by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
     var showPassword by remember { mutableStateOf(false) }
     var showConfirmPassword by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
+    var acceptTerms by remember { mutableStateOf(false) }
     val auth = FirebaseAuth.getInstance()
     var db = FirebaseFirestore.getInstance()
     var provinciaSeleccionada by remember { mutableStateOf("") }
@@ -114,7 +113,6 @@ fun RegisterScreen(navController: NavController) {
         "Zaragoza" to Pair(41.65, -0.88)
     )
 
-
     WauMatchTheme {
         Box(
             modifier = Modifier
@@ -136,11 +134,8 @@ fun RegisterScreen(navController: NavController) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                // Logo
                 Image(
-                    painter = rememberAsyncImagePainter(
-                        R.drawable.perro
-                    ),
+                    painter = rememberAsyncImagePainter(R.drawable.perro),
                     contentDescription = "Logo de WauMatch",
                     modifier = Modifier
                         .size(120.dp)
@@ -150,16 +145,14 @@ fun RegisterScreen(navController: NavController) {
 
                 Spacer(modifier = Modifier.height(20.dp))
 
-                // Título
                 Text(
                     text = "WauMatch",
                     fontSize = 32.sp,
-                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                    fontWeight = FontWeight.Bold,
                     color = Color(0xFF2EDFF2),
                     textAlign = TextAlign.Center
                 )
 
-                // Subtítulo
                 Text(
                     text = "Crea tu cuenta para empezar",
                     fontSize = 16.sp,
@@ -168,7 +161,6 @@ fun RegisterScreen(navController: NavController) {
                     modifier = Modifier.padding(bottom = 40.dp)
                 )
 
-                // Campo de correo
                 OutlinedTextField(
                     value = email,
                     onValueChange = { email = it },
@@ -193,7 +185,6 @@ fun RegisterScreen(navController: NavController) {
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Campo de nombre
                 OutlinedTextField(
                     value = nombre,
                     onValueChange = { nombre = it },
@@ -205,7 +196,7 @@ fun RegisterScreen(navController: NavController) {
                             tint = Color(0xFF2EDFF2)
                         )
                     },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(Color(0x14FFFFFF), RoundedCornerShape(12.dp))
@@ -215,11 +206,12 @@ fun RegisterScreen(navController: NavController) {
                         unfocusedTextColor = Color.White
                     )
                 )
+
                 Spacer(modifier = Modifier.height(16.dp))
+
                 OutlinedTextField(
                     value = telefono,
                     onValueChange = {
-                        // Limitar solo números y máximo 9 caracteres
                         if (it.length <= 9 && it.all { char -> char.isDigit() }) {
                             telefono = it
                         }
@@ -242,13 +234,13 @@ fun RegisterScreen(navController: NavController) {
                         unfocusedTextColor = Color.White
                     )
                 )
+
                 Spacer(modifier = Modifier.height(16.dp))
 
                 ExposedDropdownMenuBox(
                     expanded = expanded,
                     onExpandedChange = { expanded = !expanded },
-                    modifier = Modifier
-                        .fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     OutlinedTextField(
                         value = provinciaSeleccionada,
@@ -292,8 +284,6 @@ fun RegisterScreen(navController: NavController) {
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-
-                // Campo de contraseña
                 OutlinedTextField(
                     value = password,
                     onValueChange = { password = it },
@@ -328,7 +318,6 @@ fun RegisterScreen(navController: NavController) {
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Campo de confirmación de contraseña
                 OutlinedTextField(
                     value = confirmPassword,
                     onValueChange = { confirmPassword = it },
@@ -363,6 +352,39 @@ fun RegisterScreen(navController: NavController) {
 
                 Spacer(modifier = Modifier.height(16.dp))
 
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Checkbox(
+                        checked = acceptTerms,
+                        onCheckedChange = { acceptTerms = it },
+                        colors = CheckboxDefaults.colors(
+                            checkedColor = Color(0xFF2EDFF2),
+                            uncheckedColor = Color(0xFF6B7280)
+                        )
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Acepto los ",
+                        fontSize = 14.sp,
+                        color = Color(0xFF6B7280)
+                    )
+                    Text(
+                        text = "Términos y Condiciones",
+                        fontSize = 14.sp,
+                        color = Color(0xFF2EDFF2),
+                        textDecoration = TextDecoration.Underline,
+                        modifier = Modifier.clickable {
+                            navController.navigate(NavigationItem.TermsAndConditions.route)
+                        }
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
                 if (errorMessage.isNotEmpty()) {
                     Row(
                         modifier = Modifier
@@ -392,7 +414,7 @@ fun RegisterScreen(navController: NavController) {
 
                 Button(
                     onClick = {
-                        if (validate(email, password, confirmPassword, nombre, telefono, auth, { errorMessage = it })) {
+                        if (validate(email, password, confirmPassword, nombre, telefono, acceptTerms, auth, { errorMessage = it })) {
                             auth.createUserWithEmailAndPassword(email, password)
                                 .addOnCompleteListener { task ->
                                     if (task.isSuccessful) {
@@ -405,9 +427,8 @@ fun RegisterScreen(navController: NavController) {
                                                     val latitud = coordenadas?.first
                                                     val longitud = coordenadas?.second
                                                     if (latitud != null && longitud != null) {
-                                                            crearUsuarioBD(db, email, password, nombre,  auth, telefono, provinciaSeleccionada, latitud, longitud)
+                                                        crearUsuarioBD(db, email, password, nombre, auth, telefono, provinciaSeleccionada, latitud, longitud)
                                                     }
-
                                                     navController.navigate(NavigationItem.Login.route)
                                                 } else {
                                                     errorMessage = "Error al enviar el correo de verificación: ${verifyTask.exception?.message}"
@@ -449,7 +470,7 @@ fun RegisterScreen(navController: NavController) {
                         text = "Inicia sesión",
                         fontSize = 14.sp,
                         color = Color(0xFF2EDFF2),
-                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                        fontWeight = FontWeight.Bold,
                         modifier = Modifier.clickable {
                             navController.navigate(NavigationItem.Login.route)
                         }
@@ -488,9 +509,12 @@ fun crearUsuarioBD(bd: FirebaseFirestore, email: String, password: String, nombr
     }
 }
 
-
-fun validate(email: String, password: String, confirmPassword: String, nombre: String, telefono: String, auth: FirebaseAuth, setErrorMessage: (String) -> Unit): Boolean {
+fun validate(email: String, password: String, confirmPassword: String, nombre: String, telefono: String, acceptTerms: Boolean, auth: FirebaseAuth, setErrorMessage: (String) -> Unit): Boolean {
     val regex = "^[A-Za-z0-9._%+-]+@(gmail\\.com|hotmail\\.com|yahoo\\.com)$"
+    if (!acceptTerms) {
+        setErrorMessage("Debes aceptar los Términos y Condiciones para registrarte")
+        return false
+    }
     if (telefono.length != 9 || !telefono.all { it.isDigit() }) {
         setErrorMessage("El teléfono debe contener exactamente 9 dígitos")
         return false
@@ -499,21 +523,17 @@ fun validate(email: String, password: String, confirmPassword: String, nombre: S
         setErrorMessage("Todos los campos son obligatorios")
         return false
     }
-
-    if(!(email.matches(regex.toRegex())))
-    {
+    if (!email.matches(regex.toRegex())) {
         setErrorMessage("Por favor, ingresa un email válido con un dominio permitido (gmail.com, hotmail.com, etc.)")
         return false
     }
-
     if (password != confirmPassword) {
         setErrorMessage("Las contraseñas no coinciden")
         return false
     }
-    var isValid = true
-
-    return isValid
+    return true
 }
+
 fun generateProfileImageFromName(name: String): String {
     val firstLetter = name.trim().firstOrNull()?.uppercase() ?: "U"
     val backgroundColor = "022859"
