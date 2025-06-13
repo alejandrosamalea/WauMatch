@@ -30,6 +30,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.toLowerCase
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -427,7 +428,7 @@ fun RegisterScreen(navController: NavController) {
                                                     val latitud = coordenadas?.first
                                                     val longitud = coordenadas?.second
                                                     if (latitud != null && longitud != null) {
-                                                        crearUsuarioBD(db, email, password, nombre, auth, telefono, provinciaSeleccionada, latitud, longitud)
+                                                        crearUsuarioBD(db,email.lowercase(Locale.getDefault()), password, nombre, auth, telefono, provinciaSeleccionada, latitud, longitud)
                                                     }
                                                     navController.navigate(NavigationItem.Login.route)
                                                 } else {

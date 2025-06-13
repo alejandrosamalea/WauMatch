@@ -35,6 +35,7 @@ import com.example.waumatch.ui.navigation.NavigationItem
 import com.example.waumatch.ui.theme.WauMatchTheme
 import com.google.android.play.core.integrity.r
 import com.google.firebase.auth.FirebaseAuth
+import java.util.Locale
 
 @Composable
 fun LoginScreen(navController: NavController) {
@@ -218,7 +219,7 @@ fun LoginScreen(navController: NavController) {
                 Button(
                     onClick = {
                         validate(
-                            email,
+                            email.lowercase(Locale.getDefault()),
                             password,
                             auth,
                             setErrorMessage = { errorMessage = it },
