@@ -24,6 +24,7 @@ Esto evita que otros usuarios accedan a una base de datos compartida o sensible.
 ❗**No uses el `google-services.json` del repositorio original.**  
 Cada usuario debe configurar su propia base de datos para mantener la seguridad y privacidad de los datos.
 
+La Apk incluida en el repositorio solo se puede utilizar en un dispositivo android a ser preferible telefono
 ---
 
 ## 📱 Funcionamiento de la App
