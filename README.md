@@ -86,5 +86,5 @@ Tú eres responsable del uso de tu propia base de datos y entorno de backend.
 
 ## 🧾 Créditos
 
-Desarrollado por Alejandro Ibañez , Ivan Castilla y Javier Lucas
+Desarrollado por Alejandro Ibañez , Ivan Castilla ([github.com/M3gaicm](https://github.com/M3gaicm)) y Javier Lucas ([github.com/JavierLucasDavo](https://github.com/JavierLucasDavo))
 Diseñado para promover conexiones entre dueños de mascotas de forma segura y amigable 🐾
