@@ -86,5 +86,5 @@ Tú eres responsable del uso de tu propia base de datos y entorno de backend.
 
 ## 🧾 Créditos
 
-Desarrollado por [Tu Nombre o Usuario de GitHub]  
+Desarrollado por Alejandro Ibañez , Ivan Castilla y Javier Lucas
 Diseñado para promover conexiones entre dueños de mascotas de forma segura y amigable 🐾
